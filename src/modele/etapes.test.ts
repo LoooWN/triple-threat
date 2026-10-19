@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ballonFinal, deplacerJoueur, etapeSuivante, positionsFinales, propager, retirerJoueur } from './etapes.ts'
+import { ballonFinal, changerChemin, deplacerJoueur, etapeSuivante, positionsFinales, propager, retirerJoueur } from './etapes.ts'
 import type { Action, Etape, Joueur, Point, TypeAction } from './types.ts'
 
 const j = (id: string, x: number, y: number): Joueur =>
@@ -68,6 +68,22 @@ describe('deplacerJoueur', () => {
     expect(d.actions[1].chemin[0]).toEqual([4, 3])
     expect(d.actions[2].chemin.at(-1)).toEqual([4, 3])
     expect(d.actions[0]).toEqual(e.actions[0])
+  })
+})
+
+describe('changerChemin', () => {
+  it('fait suivre la passe vers ce joueur et son action enchaînée quand on déplace l’arrivée d’une coupe', () => {
+    const e = etape([j('A1', 9, 7.5), j('A2', 5, 2)], [
+      act('coupe', 'A2', [[5, 2], [4, 2.5], [3, 3]]),
+      act('ecran', 'A2', [[3, 3], [3.5, 4], [4, 5]]),
+      act('passe', 'A1', [[9, 7.5], [7, 6], [4, 5]], 'A2'),
+    ])
+    const c = changerChemin(e, e.actions[0].id, [[5, 2], [4, 2], [2, 2]])
+    expect(c.actions[0].chemin.at(-1)).toEqual([2, 2])
+    expect(c.actions[1].chemin[0]).toEqual([2, 2])
+    expect(c.actions[2].chemin.at(-1)).toEqual([4, 5])
+    const d = changerChemin(e, e.actions[1].id, [[3, 3], [3.5, 4], [6, 6]])
+    expect(d.actions[2].chemin.at(-1)).toEqual([6, 6])
   })
 })
 

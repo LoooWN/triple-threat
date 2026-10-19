@@ -27,19 +27,43 @@ export function etapeSuivante(e: Etape): Etape {
   }
 }
 
+// Les passes restent accrochées à leur receveur quand sa position de fin d'étape change.
+function suivrePasses(avant: Etape, apres: Etape): Etape {
+  const [fa, fn] = [positionsFinales(avant), positionsFinales(apres)]
+  return {
+    ...apres,
+    actions: apres.actions.map((a) => {
+      const [pa, pn] = [a.vers && fa.get(a.vers), a.vers && fn.get(a.vers)]
+      if (a.type !== 'passe' || !pa || !pn || proche(pa, pn) || !proche(fin(a.chemin), pa)) return a
+      return { ...a, chemin: deplacerFin(a.chemin, pn) }
+    }),
+  }
+}
+
 export function deplacerJoueur(e: Etape, id: string, p: Point): Etape {
   const j = e.joueurs.find((k) => k.id === id)
   if (!j) return e
   const avant: Point = [j.x, j.y]
-  const finAvant = positionsFinales(e).get(id)!
-  const joueurs = e.joueurs.map((k) => (k.id === id ? { ...k, x: p[0], y: p[1] } : k))
-  let actions = e.actions.map((a) =>
-    a.joueur === id && proche(a.chemin[0], avant) ? { ...a, chemin: deplacerDebut(a.chemin, p) } : a)
-  const finApres = positionsFinales({ ...e, joueurs, actions }).get(id)!
-  if (!proche(finAvant, finApres))
-    actions = actions.map((a) =>
-      a.type === 'passe' && a.vers === id && proche(fin(a.chemin), finAvant) ? { ...a, chemin: deplacerFin(a.chemin, finApres) } : a)
-  return { ...e, joueurs, actions }
+  return suivrePasses(e, {
+    ...e,
+    joueurs: e.joueurs.map((k) => (k.id === id ? { ...k, x: p[0], y: p[1] } : k)),
+    actions: e.actions.map((a) => (a.joueur === id && proche(a.chemin[0], avant) ? { ...a, chemin: deplacerDebut(a.chemin, p) } : a)),
+  })
+}
+
+// Nouveau tracé pour une action : son action enchaînée (même joueur) et les passes vers ce joueur suivent.
+export function changerChemin(e: Etape, id: string, chemin: Point[]): Etape {
+  const a = e.actions.find((x) => x.id === id)
+  if (!a) return e
+  const [ancien, nouveau] = [fin(a.chemin), fin(chemin)]
+  const suit = estDeplacement(a) && !proche(ancien, nouveau)
+  return suivrePasses(e, {
+    ...e,
+    actions: e.actions.map((x) => {
+      if (x.id === id) return { ...x, chemin }
+      return suit && x.joueur === a.joueur && proche(x.chemin[0], ancien) ? { ...x, chemin: deplacerDebut(x.chemin, nouveau) } : x
+    }),
+  })
 }
 
 export function retirerJoueur(e: Etape, id: string): Etape {
