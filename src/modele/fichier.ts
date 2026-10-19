@@ -1,9 +1,13 @@
-import { nouvelId, type Systeme } from './types.ts'
+import { normaliser } from './documents.ts'
+import { nouvelId, type Equipe, type Seance, type Systeme } from './types.ts'
 
 const FORMAT = 'triple-threat'
+const VERSION = 2
 
-export function exporter(systemes: Systeme[]): string {
-  return JSON.stringify({ format: FORMAT, version: 1, exporteLe: new Date().toISOString(), systemes }, null, 2)
+export interface Contenu { systemes: Systeme[]; seances: Seance[]; equipes: Equipe[] }
+
+export function exporter({ systemes, seances = [], equipes = [] }: Partial<Contenu> & Pick<Contenu, 'systemes'>): string {
+  return JSON.stringify({ format: FORMAT, version: VERSION, exporteLe: new Date().toISOString(), systemes, seances, equipes }, null, 2)
 }
 
 // Le fichier vient de l'extérieur : on vérifie tout avant d'y toucher.
@@ -13,23 +17,51 @@ const nombre = (v: unknown) => typeof v === 'number' && Number.isFinite(v)
 const texte = (v: unknown) => typeof v === 'string'
 const liste = (v: unknown, ok: (x: unknown) => boolean) => Array.isArray(v) && v.every(ok)
 const point = (p: unknown) => Array.isArray(p) && p.length === 2 && nombre(p[0]) && nombre(p[1])
+const parmi = (v: unknown, valeurs: string[]) => valeurs.includes(v as string)
 
-const joueur = (j: unknown) => objet(j) && texte(j.id) && (j.camp === 'attaque' || j.camp === 'defense') && nombre(j.numero) && nombre(j.x) && nombre(j.y)
+const joueur = (j: unknown) => objet(j) && texte(j.id) && parmi(j.camp, ['attaque', 'defense', 'coach']) && nombre(j.numero) && nombre(j.x) && nombre(j.y)
 const action = (a: unknown) =>
-  objet(a) && texte(a.id) && ['coupe', 'passe', 'dribble', 'ecran'].includes(a.type as string) && texte(a.joueur) &&
+  objet(a) && texte(a.id) && parmi(a.type, ['coupe', 'passe', 'dribble', 'ecran']) && texte(a.joueur) &&
   (a.vers === undefined || texte(a.vers)) && texte(a.couleur) &&
   liste(a.chemin, point) && (a.chemin as unknown[]).length >= 3 && (a.chemin as unknown[]).length % 2 === 1
 const etiquette = (t: unknown) => objet(t) && texte(t.id) && nombre(t.x) && nombre(t.y) && texte(t.texte)
 const etape = (e: unknown) =>
-  objet(e) && texte(e.id) && texte(e.description) && (e.ballon === null || texte(e.ballon)) &&
+  objet(e) && texte(e.id) && texte(e.description) && liste(e.ballons, texte) &&
   liste(e.joueurs, joueur) && liste(e.actions, action) && liste(e.textes, etiquette)
 const terrain = (t: unknown) =>
-  objet(t) && (t.vue === 'demi' || t.vue === 'entier') && nombre(t.longueur) && nombre(t.largeur) && (t.ligne3pts === null || nombre(t.ligne3pts))
+  objet(t) && parmi(t.vue, ['demi', 'entier']) && nombre(t.longueur) && nombre(t.largeur) && (t.ligne3pts === null || nombre(t.ligne3pts))
+const materiel = (m: unknown) => objet(m) && texte(m.id) && parmi(m.type, ['plot', 'echelle', 'ballon']) && nombre(m.x) && nombre(m.y) && nombre(m.angle)
 const systeme = (s: unknown) =>
-  objet(s) && texte(s.id) && texte(s.nom) && texte(s.creeLe) && texte(s.modifieLe) && terrain(s.terrain) &&
-  liste(s.etapes, etape) && (s.etapes as unknown[]).length > 0
+  objet(s) && texte(s.id) && texte(s.nom) && parmi(s.genre, ['systeme', 'exercice']) && texte(s.categorie) &&
+  texte(s.creeLe) && texte(s.modifieLe) && terrain(s.terrain) && liste(s.etapes, etape) && (s.etapes as unknown[]).length > 0 &&
+  (s.equipe === null || texte(s.equipe)) && objet(s.maillots) && Object.values(s.maillots).every(texte) &&
+  liste(s.materiel, materiel) && texte(s.miseEnPlace) && texte(s.pointsCles) && texte(s.variantes) && nombre(s.dureeConseillee)
+const bloc = (b: unknown) => objet(b) && texte(b.id) && texte(b.document) && nombre(b.duree) && texte(b.note)
+const seance = (s: unknown) => objet(s) && texte(s.id) && texte(s.nom) && texte(s.date) && texte(s.creeLe) && texte(s.modifieLe) && liste(s.blocs, bloc)
+const joueurEffectif = (j: unknown) => objet(j) && texte(j.id) && texte(j.nom) && texte(j.maillot)
+const equipe = (e: unknown) => objet(e) && texte(e.id) && texte(e.nom) && texte(e.modifieLe) && liste(e.joueurs, joueurEffectif)
 
-export function importer(contenu: string, existants: Systeme[]): { nouveaux: Systeme[]; dejaPresents: number } {
+const ABIME = 'Ce fichier est abîmé : un élément est incomplet. Rien n’a été importé.'
+
+// Déjà présent à l'identique → ignoré ; modifié entre-temps → ajouté en copie, sans rien écraser.
+function fusionner<T extends { id: string; nom: string; modifieLe: string }>(entrants: T[], presents: T[]) {
+  const parId = new Map(presents.map((x) => [x.id, x]))
+  const ids = new Map<string, string>()
+  let dejaPresents = 0
+  const nouveaux = entrants.flatMap((x) => {
+    const p = parId.get(x.id)
+    if (!p) return [x]
+    if (p.modifieLe === x.modifieLe) {
+      dejaPresents++
+      return []
+    }
+    ids.set(x.id, nouvelId(x.id.split('-')[0] || 'x'))
+    return [{ ...x, id: ids.get(x.id)!, nom: `${x.nom} (copie)` }]
+  })
+  return { nouveaux, ids, dejaPresents }
+}
+
+export function importer(contenu: string, existants: Contenu): Contenu & { dejaPresents: number } {
   let data: unknown
   try {
     data = JSON.parse(contenu)
@@ -37,17 +69,22 @@ export function importer(contenu: string, existants: Systeme[]): { nouveaux: Sys
     throw new Error('Ce fichier n’est pas un fichier Triple Threat lisible.')
   }
   if (!objet(data) || data.format !== FORMAT) throw new Error('Ce fichier ne vient pas de Triple Threat.')
-  if (data.version !== 1) throw new Error('Ce fichier vient d’une version plus récente de Triple Threat : mets l’appli à jour.')
-  if (!liste(data.systemes, systeme)) throw new Error('Ce fichier est abîmé : un système est incomplet. Rien n’a été importé.')
+  if (nombre(data.version) && (data.version as number) > VERSION) throw new Error('Ce fichier vient d’une version plus récente de Triple Threat : mets l’appli à jour.')
+  if (data.version !== 1 && data.version !== VERSION) throw new Error(ABIME)
 
-  const parId = new Map(existants.map((s) => [s.id, s]))
-  const nouveaux: Systeme[] = []
-  let dejaPresents = 0
-  for (const s of data.systemes as Systeme[]) {
-    const existant = parId.get(s.id)
-    if (!existant) nouveaux.push(s)
-    else if (existant.modifieLe === s.modifieLe) dejaPresents++
-    else nouveaux.push({ ...s, id: nouvelId('s'), nom: `${s.nom} (copie)` })
+  const brut = data.systemes
+  if (!Array.isArray(brut) || !brut.every((s) => objet(s) && Array.isArray(s.etapes) && s.etapes.every(objet))) throw new Error(ABIME)
+  const systemes = brut.map(normaliser)
+  const [seances, equipes] = [data.seances ?? [], data.equipes ?? []]
+  if (!systemes.every(systeme) || !liste(seances, seance) || !liste(equipes, equipe)) throw new Error(ABIME)
+
+  const docs = fusionner(systemes, existants.systemes)
+  const ses = fusionner(seances as Seance[], existants.seances)
+  const equipesNouvelles = (equipes as Equipe[]).filter((e) => !existants.equipes.some((x) => x.id === e.id))
+  return {
+    systemes: docs.nouveaux,
+    seances: ses.nouveaux.map((s) => ({ ...s, blocs: s.blocs.map((b) => ({ ...b, document: docs.ids.get(b.document) ?? b.document })) })),
+    equipes: equipesNouvelles,
+    dejaPresents: docs.dejaPresents + ses.dejaPresents + (equipes as Equipe[]).length - equipesNouvelles.length,
   }
-  return { nouveaux, dejaPresents }
 }

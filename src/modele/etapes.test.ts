@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { ballonFinal, changerChemin, changerNumero, deplacerJoueur, etapeSuivante, positionsFinales, propager, retirerJoueur } from './etapes.ts'
+import { ballonsFinaux, changerChemin, changerNumero, deplacerJoueur, etapeSuivante, positionsFinales, propager, retirerJoueur } from './etapes.ts'
+import { nouveauDocument } from './documents.ts'
 import type { Action, Etape, Joueur, Point, TypeAction } from './types.ts'
 
 const j = (id: string, x: number, y: number): Joueur =>
@@ -7,8 +8,8 @@ const j = (id: string, x: number, y: number): Joueur =>
 let n = 0
 const act = (type: TypeAction, joueur: string, chemin: Point[], vers?: string): Action =>
   ({ id: `a${n++}`, type, joueur, chemin, couleur: '#222', ...(vers ? { vers } : {}) })
-const etape = (joueurs: Joueur[], actions: Action[] = [], ballon: string | null = null): Etape =>
-  ({ id: 'e', description: 'desc', joueurs, ballon, actions, textes: [{ id: 't', x: 1, y: 1, texte: 'x' }] })
+const etape = (joueurs: Joueur[], actions: Action[] = [], ballons: string[] = []): Etape =>
+  ({ id: 'e', description: 'desc', joueurs, ballons, actions, textes: [{ id: 't', x: 1, y: 1, texte: 'x' }] })
 const pos = (e: Etape, id: string) => { const k = e.joueurs.find((p) => p.id === id)!; return [k.x, k.y] }
 
 describe('positionsFinales', () => {
@@ -26,15 +27,20 @@ describe('positionsFinales', () => {
   })
 })
 
-describe('ballonFinal', () => {
-  it('donne le ballon au receveur de la dernière passe, sinon au porteur', () => {
-    const joueurs = [j('A1', 9, 7.5), j('A2', 5, 2), j('A3', 5, 13)]
-    expect(ballonFinal(etape(joueurs, [], 'A1'))).toBe('A1')
-    expect(ballonFinal(etape(joueurs, [act('dribble', 'A1', [[9, 7.5], [8, 7], [7, 7]])], 'A1'))).toBe('A1')
-    expect(ballonFinal(etape(joueurs, [
+describe('ballonsFinaux', () => {
+  const joueurs = [j('A1', 9, 7.5), j('A2', 5, 2), j('A3', 5, 13), j('A4', 2, 7)]
+  it('donne le ballon au receveur de chaque passe, sinon il reste au porteur', () => {
+    expect(ballonsFinaux(etape(joueurs, [], ['A1']))).toEqual(['A1'])
+    expect(ballonsFinaux(etape(joueurs, [act('dribble', 'A1', [[9, 7.5], [8, 7], [7, 7]])], ['A1']))).toEqual(['A1'])
+    expect(ballonsFinaux(etape(joueurs, [
       act('passe', 'A1', [[9, 7.5], [7, 5], [5, 2]], 'A2'),
       act('passe', 'A2', [[5, 2], [5, 7], [5, 13]], 'A3'),
-    ], 'A1'))).toBe('A3')
+    ], ['A1']))).toEqual(['A3'])
+  })
+  it('gère plusieurs ballons, et une passe tracée depuis un joueur sans ballon en donne un au receveur', () => {
+    const deux = ballonsFinaux(etape(joueurs, [act('passe', 'A1', [[9, 7.5], [7, 5], [5, 2]], 'A2')], ['A1', 'A3']))
+    expect([...deux].sort()).toEqual(['A2', 'A3'])
+    expect(ballonsFinaux(etape(joueurs, [act('passe', 'A1', [[9, 7.5], [7, 5], [5, 2]], 'A2')]))).toEqual(['A2'])
   })
 })
 
@@ -43,13 +49,13 @@ describe('etapeSuivante', () => {
     const e = etape([j('A1', 9, 7.5), j('A2', 5, 2), j('D1', 8, 7.5)], [
       act('dribble', 'A1', [[9, 7.5], [8, 5], [7, 3]]),
       act('passe', 'A1', [[7, 3], [6, 2], [5, 2]], 'A2'),
-    ], 'A1')
+    ], ['A1'])
     const s = etapeSuivante(e)
     expect(s.id).not.toBe(e.id)
     expect(pos(s, 'A1')).toEqual([7, 3])
     expect(pos(s, 'A2')).toEqual([5, 2])
     expect(pos(s, 'D1')).toEqual([8, 7.5])
-    expect(s.ballon).toBe('A2')
+    expect(s.ballons).toEqual(['A2'])
     expect(s.actions).toEqual([])
     expect(s.textes).toEqual([])
     expect(s.description).toBe('')
@@ -90,7 +96,7 @@ describe('changerChemin', () => {
 describe('changerNumero', () => {
   it('change le numéro dans toutes les étapes et le donne en échange à celui qui l’avait (même camp)', () => {
     const e1 = etape([j('A1', 9, 7.5), j('A2', 5, 2), j('D2', 5, 3)])
-    const s = { id: 's', nom: 'x', creeLe: '', modifieLe: '', terrain: { vue: 'demi' as const, longueur: 28, largeur: 15, ligne3pts: 6.75 }, etapes: [e1, etapeSuivante(e1)] }
+    const s = { ...nouveauDocument('systeme', 'x', { vue: 'demi', longueur: 28, largeur: 15, ligne3pts: 6.75 }, 'Attaque'), etapes: [e1, etapeSuivante(e1)] }
     const r = changerNumero(s, 'A2', 1)
     for (const e of r.etapes) {
       expect(e.joueurs.find((p) => p.id === 'A2')!.numero).toBe(1)
@@ -105,11 +111,11 @@ describe('retirerJoueur', () => {
     const e = etape([j('A1', 9, 7.5), j('A2', 5, 2)], [
       act('coupe', 'A1', [[9, 7.5], [8, 6], [7, 5]]),
       act('passe', 'A2', [[5, 2], [6, 4], [7, 5]], 'A1'),
-    ], 'A1')
+    ], ['A1'])
     const r = retirerJoueur(e, 'A1')
     expect(r.joueurs.map((p) => p.id)).toEqual(['A2'])
     expect(r.actions).toEqual([])
-    expect(r.ballon).toBeNull()
+    expect(r.ballons).toEqual([])
   })
 })
 
@@ -121,7 +127,7 @@ describe('propager', () => {
       act('coupe', 'A2', [[5, 2], [4, 3], [3, 3]]),
       act('coupe', 'A3', [[3, 12], [5, 10], [7, 7]]),
       act('passe', 'A1', [[9, 7.5], [6, 5], [3, 3]], 'A2'),
-    ], 'A1')
+    ], ['A1'])
     let e2 = deplacerJoueur(etapeSuivante(e1), 'A2', [2, 2])
     e2 = { ...e2, actions: [act('coupe', 'A1', [[5, 5], [5.5, 5.5], [6, 6]])] }
     const e3 = etapeSuivante(e2)
@@ -156,8 +162,8 @@ describe('propager', () => {
 
   it('propage le ballon quand le receveur change', () => {
     const r = modifier(fabriquer(), 0, (e) => ({ ...e, actions: e.actions.map((a) => (a.type === 'passe' ? { ...a, vers: 'A3' } : a)) }))
-    expect(r[1].ballon).toBe('A3')
-    expect(r[2].ballon).toBe('A3')
+    expect(r[1].ballons).toEqual(['A3'])
+    expect(r[2].ballons).toEqual(['A3'])
   })
 
   it('ajoute et retire dans les étapes suivantes les joueurs ajoutés ou supprimés', () => {

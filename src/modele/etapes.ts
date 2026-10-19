@@ -10,10 +10,17 @@ export function positionsFinales(e: Etape): Map<string, Point> {
   return pos
 }
 
-export function ballonFinal(e: Etape): string | null {
-  const passes = e.actions.filter((a) => a.type === 'passe' && a.vers)
-  return passes.length ? passes[passes.length - 1].vers! : e.ballon
+// Chaque passe enlève le ballon au passeur et en donne un au receveur (même si le passeur n'en avait pas).
+export function ballonsFinaux(e: Etape): string[] {
+  const porteurs = new Set(e.ballons)
+  for (const a of e.actions) if (a.type === 'passe' && a.vers) {
+    porteurs.delete(a.joueur)
+    porteurs.add(a.vers)
+  }
+  return [...porteurs]
 }
+
+const memes = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x))
 
 export function etapeSuivante(e: Etape): Etape {
   const pos = positionsFinales(e)
@@ -21,7 +28,7 @@ export function etapeSuivante(e: Etape): Etape {
     id: nouvelId('e'),
     description: '',
     joueurs: e.joueurs.map((j) => ({ ...j, x: pos.get(j.id)![0], y: pos.get(j.id)![1] })),
-    ballon: ballonFinal(e),
+    ballons: ballonsFinaux(e),
     actions: [],
     textes: [],
   }
@@ -71,7 +78,7 @@ export function retirerJoueur(e: Etape, id: string): Etape {
     ...e,
     joueurs: e.joueurs.filter((j) => j.id !== id),
     actions: e.actions.filter((a) => a.joueur !== id && a.vers !== id),
-    ballon: e.ballon === id ? null : e.ballon,
+    ballons: e.ballons.filter((b) => b !== id),
   }
 }
 
@@ -96,8 +103,8 @@ export function propager(etapes: Etape[], i: number, avant: Etape): Etape[] {
       if (!finAvant.has(id) && !suivante.joueurs.some((x) => x.id === id))
         suivante = { ...suivante, joueurs: [...suivante.joueurs, { ...nouveau, x: pn[0], y: pn[1] }] }
     }
-    const [ba, bn] = [ballonFinal(ancienne), ballonFinal(res[k - 1])]
-    if (ba !== bn && suivante.ballon === ba) suivante = { ...suivante, ballon: bn }
+    const [ba, bn] = [ballonsFinaux(ancienne), ballonsFinaux(res[k - 1])]
+    if (!memes(ba, bn) && memes(suivante.ballons, ba)) suivante = { ...suivante, ballons: bn }
     if (suivante === res[k]) break
     ancienne = res[k]
     res[k] = suivante
@@ -132,12 +139,12 @@ export function changerNumero(s: Systeme, id: string, numero: number): Systeme {
   }
 }
 
-// Une passe va à l'attaquant le plus proche de son arrivée, là où il sera en fin d'étape.
+// Une passe va à l'attaquant (ou au coach) le plus proche de son arrivée, là où il sera en fin d'étape.
 export function receveurPasse(e: Etape, passeur: string, chemin: Point[]): { vers: string; chemin: Point[] } | null {
   const finales = positionsFinales(e)
   let meilleur: { vers: string; p: Point; d: number } | null = null
   for (const j of e.joueurs) {
-    if (j.id === passeur || j.camp !== 'attaque') continue
+    if (j.id === passeur || j.camp === 'defense') continue
     const p = finales.get(j.id)!
     const d = distance(p, fin(chemin))
     if (d < 2.5 && (!meilleur || d < meilleur.d)) meilleur = { vers: j.id, p, d }

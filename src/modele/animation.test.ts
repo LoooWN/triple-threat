@@ -12,8 +12,8 @@ const joueurs: Etape['joueurs'] = [
 ]
 const act = (id: string, type: Action['type'], joueur: string, chemin: Point[], vers?: string): Action =>
   ({ id, type, joueur, chemin, couleur: '#000', ...(vers ? { vers } : {}) })
-const etape = (actions: Action[]): Etape => ({ id: 'e', description: '', ballon: 'A1', textes: [], joueurs, actions })
-const pres = (p: Point | null | undefined, q: Point) => distance(p!, q) < 0.01
+const etape = (actions: Action[]): Etape => ({ id: 'e', description: '', ballons: ['A1'], textes: [], joueurs, actions })
+const pres = (p: Point | undefined, q: Point) => distance(p!, q) < 0.01
 
 describe('etatAnime', () => {
   it('fait tout partir en même temps : coupe, écran et passe vers le coupeur', () => {
@@ -25,14 +25,16 @@ describe('etatAnime', () => {
     expect(nombreTemps(e)).toBe(1)
     const debut = etatAnime(e, 0)
     expect(debut.positions.get('A2')).toEqual([5, 2])
-    expect(debut.ballon).toEqual([9, 7.5])
+    expect(debut.ballons).toEqual([[9, 7.5]])
     const milieu = etatAnime(e, 0.5)
     expect(pres(milieu.positions.get('A2'), [5, 2]) || pres(milieu.positions.get('A2'), [3, 4])).toBe(false)
     expect(pres(milieu.positions.get('A5'), [5.8, 10]) || pres(milieu.positions.get('A5'), [8, 8])).toBe(false)
-    expect(pres(milieu.ballon, [9, 7.5]) || pres(milieu.ballon, [3, 4])).toBe(false)
+    expect(milieu.ballons).toHaveLength(1)
+    expect(pres(milieu.ballons[0], [9, 7.5]) || pres(milieu.ballons[0], [3, 4])).toBe(false)
     const fin = etatAnime(e, 1)
     expect(pres(fin.positions.get('A2'), [3, 4])).toBe(true)
-    expect(pres(fin.ballon, [3, 4])).toBe(true)
+    expect(fin.ballons).toHaveLength(1)
+    expect(pres(fin.ballons[0], [3, 4])).toBe(true)
     expect(fin.positions.get('D1')).toEqual([8, 7.5])
   })
 
@@ -46,8 +48,8 @@ describe('etatAnime', () => {
     const s = etatAnime(e, 0.5)
     expect(pres(s.positions.get('A1'), [7, 5])).toBe(true)
     expect(pres(s.positions.get('A3'), [3, 11])).toBe(true)
-    expect(pres(s.ballon, [7, 5])).toBe(true)
-    expect(pres(etatAnime(e, 1).ballon, [3, 11])).toBe(true)
+    expect(pres(s.ballons[0], [7, 5])).toBe(true)
+    expect(pres(etatAnime(e, 1).ballons[0], [3, 11])).toBe(true)
   })
 
   it('attend que le ballon arrive avant une deuxième passe', () => {
@@ -56,7 +58,16 @@ describe('etatAnime', () => {
       act('p2', 'passe', 'A2', [[5, 2], [5, 7], [5, 13]], 'A3'),
     ])
     expect(nombreTemps(e)).toBe(2)
-    expect(pres(etatAnime(e, 0.5).ballon, [5, 2])).toBe(true)
-    expect(pres(etatAnime(e, 1).ballon, [5, 13])).toBe(true)
+    expect(pres(etatAnime(e, 0.5).ballons[0], [5, 2])).toBe(true)
+    expect(pres(etatAnime(e, 1).ballons[0], [5, 13])).toBe(true)
+  })
+
+  it('suit plusieurs ballons à la fois (exercice)', () => {
+    const e = { ...etape([act('p1', 'passe', 'A1', [[9, 7.5], [7, 4], [5, 2]], 'A2')]), ballons: ['A1', 'A3'] }
+    const milieu = etatAnime(e, 0.5).ballons
+    expect(milieu).toHaveLength(2)
+    expect(milieu.some((b) => pres(b, [5, 13]))).toBe(true)
+    const fin = etatAnime(e, 1).ballons
+    expect(fin.some((b) => pres(b, [5, 2])) && fin.some((b) => pres(b, [5, 13]))).toBe(true)
   })
 })

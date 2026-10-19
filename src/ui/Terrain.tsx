@@ -9,15 +9,17 @@ interface Props extends ComponentProps<'svg'> {
   etape: Etape
   selection?: string | null
   trait?: Point[] | null
-  anime?: { positions: Map<string, Point>; ballon: Point | null } | null
+  anime?: { positions: Map<string, Point>; ballons: Point[] } | null
+  maillots?: Record<string, { maillot: string; nom: string }> // id du pion → joueur de l'équipe
 }
 
-export function TerrainSvg({ terrain, etape, selection, trait, anime, ...svg }: Props) {
+export function TerrainSvg({ terrain, etape, selection, trait, anime, maillots = {}, ...svg }: Props) {
   const { largeur, hauteur } = cadre(terrain)
   const E = (p: Point) => versEcran(terrain, p)
   const position = (id: string, x: number, y: number) => E(anime?.positions.get(id) ?? [x, y])
-  const porteur = etape.joueurs.find((j) => j.id === etape.ballon)
-  const ballon = anime ? anime.ballon && E(anime.ballon) : porteur && position(porteur.id, porteur.x, porteur.y)
+  const ballons = anime
+    ? anime.ballons.map(E)
+    : etape.joueurs.filter((j) => etape.ballons.includes(j.id)).map((j) => position(j.id, j.x, j.y))
   const choisie = !anime && etape.actions.find((a) => a.id === selection)
 
   return (
@@ -34,20 +36,23 @@ export function TerrainSvg({ terrain, etape, selection, trait, anime, ...svg }: 
       })}
       {etape.joueurs.map((j) => {
         const [x, y] = position(j.id, j.x, j.y)
+        const m = maillots[j.id]
+        const texte = m ? m.maillot : j.camp === 'coach' ? 'C' : j.camp === 'defense' ? `X${j.numero}` : j.numero
         return (
-          <g key={j.id} data-joueur={j.id} className={`joueur ${j.camp}`} transform={`translate(${x} ${y})`}>
+          <g key={j.id} data-joueur={j.id} className={`joueur ${j.camp}${m ? ' maillot' : ''}`} transform={`translate(${x} ${y})`}>
             <circle r={0.8} className="zone" />
             <circle r={0.42} className="pion" />
-            <text dominantBaseline="central">{j.camp === 'defense' ? `X${j.numero}` : j.numero}</text>
+            <text dominantBaseline="central">{texte}</text>
+            {m?.nom && <text y={0.78} className="nom">{m.nom}</text>}
           </g>
         )
       })}
-      {ballon && (
-        <g className="ballon" transform={`translate(${ballon[0] + 0.36} ${ballon[1] - 0.36})`}>
+      {ballons.map((b, k) => (
+        <g key={k} className="ballon" transform={`translate(${b[0] + 0.36} ${b[1] - 0.36})`}>
           <circle r={0.2} />
           <path d="M-0.2 0 H0.2 M0 -0.2 V0.2" />
         </g>
-      )}
+      ))}
       {choisie && <Poignees a={choisie} terrain={terrain} />}
     </svg>
   )

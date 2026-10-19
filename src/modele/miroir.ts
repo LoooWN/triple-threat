@@ -10,5 +10,8 @@ export function miroirEtape(e: Etape, largeur: number): Etape {
   }
 }
 
-export const miroirSysteme = (s: Systeme): Systeme =>
-  ({ ...s, etapes: s.etapes.map((e) => miroirEtape(e, s.terrain.largeur)) })
+export const miroirSysteme = (s: Systeme): Systeme => ({
+  ...s,
+  etapes: s.etapes.map((e) => miroirEtape(e, s.terrain.largeur)),
+  materiel: s.materiel.map((m) => ({ ...m, y: s.terrain.largeur - m.y, angle: -m.angle })),
+})

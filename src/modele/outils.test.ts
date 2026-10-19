@@ -5,7 +5,8 @@ import { exporter, importer } from './fichier.ts'
 import { distance } from './geometrie.ts'
 import { lisserTrace } from './lissage.ts'
 import { miroirEtape, miroirSysteme } from './miroir.ts'
-import type { Etape, Point, Systeme } from './types.ts'
+import { nouveauDocument } from './documents.ts'
+import type { Equipe, Etape, Point, Seance, Systeme } from './types.ts'
 
 const terrain = { vue: 'demi', longueur: 28, largeur: 15, ligne3pts: 6.75 } as const
 const etape = (): Etape => ({
@@ -16,13 +17,20 @@ const etape = (): Etape => ({
     { id: 'A2', camp: 'attaque', numero: 2, x: 4, y: 2 },
     { id: 'D2', camp: 'defense', numero: 2, x: 3.5, y: 2.5 },
   ],
-  ballon: 'A1',
+  ballons: ['A1'],
   actions: [{ id: 'a1', type: 'coupe', joueur: 'A2', chemin: [[4, 2], [3, 4], [2, 6]], couleur: '#222' }],
   textes: [{ id: 't1', x: 3, y: 13.5, texte: 'Lire' }],
 })
 const systeme = (): Systeme => ({
-  id: 's1', nom: 'Corne', terrain: { ...terrain }, creeLe: '2026-10-19T10:00:00Z', modifieLe: '2026-10-19T11:00:00Z', etapes: [etape()],
+  ...nouveauDocument('systeme', 'Corne', { ...terrain }, 'Attaque'),
+  id: 's1', creeLe: '2026-10-19T10:00:00Z', modifieLe: '2026-10-19T11:00:00Z', etapes: [etape()],
+  materiel: [{ id: 'm1', type: 'echelle', x: 9, y: 2, angle: 30 }],
 })
+const seance = (): Seance => ({
+  id: 'se1', nom: 'Mardi', date: '2026-10-21', creeLe: 'c', modifieLe: 'm', blocs: [{ id: 'b1', document: 's1', duree: 15, note: '' }],
+})
+const equipe = (): Equipe => ({ id: 'eq1', nom: 'U15 F', modifieLe: 'm', joueurs: [{ id: 'j1', nom: 'Léa', maillot: '00' }] })
+const vide = { systemes: [], seances: [], equipes: [] }
 const ligne = (de: Point, a: Point, n = 30): Point[] =>
   Array.from({ length: n + 1 }, (_, i) => [de[0] + ((a[0] - de[0]) * i) / n, de[1] + ((a[1] - de[1]) * i) / n])
 
@@ -38,6 +46,7 @@ describe('miroir', () => {
     expect(miroirSysteme(miroirSysteme(s))).toEqual(s)
     const etroit = { ...s, terrain: { ...s.terrain, largeur: 14 } }
     expect(miroirSysteme(etroit).etapes[0].joueurs[0].y).toBe(6.5)
+    expect(miroirSysteme(s).materiel[0]).toMatchObject({ x: 9, y: 13, angle: -30 })
   })
 })
 
@@ -104,30 +113,50 @@ describe('receveurPasse', () => {
     expect(r.chemin.at(-1)).toEqual([2, 6])
     expect(receveurPasse(etape(), 'A1', [[7.575, 7.5], [9, 11], [10, 13]])).toBeNull()
   })
+  it('accepte le coach comme receveur, jamais un défenseur', () => {
+    const e = etape()
+    e.joueurs.push({ id: 'C', camp: 'coach', numero: 0, x: 10, y: 12 })
+    expect(receveurPasse(e, 'A1', [[7.575, 7.5], [9, 11], [10, 12.3]])?.vers).toBe('C')
+    expect(receveurPasse(e, 'A1', [[7.575, 7.5], [5, 4], [3.5, 2.6]])).toBeNull() // seul X2 est proche
+  })
 })
 
 describe('export / import', () => {
-  it('fait l’aller-retour sans rien perdre', () => {
-    const texte = exporter([systeme()])
-    expect(JSON.parse(texte)).toMatchObject({ format: 'triple-threat', version: 1 })
-    expect(importer(texte, [])).toEqual({ nouveaux: [systeme()], dejaPresents: 0 })
+  it('fait l’aller-retour sans rien perdre, séances et équipes comprises', () => {
+    const texte = exporter({ systemes: [systeme()], seances: [seance()], equipes: [equipe()] })
+    expect(JSON.parse(texte)).toMatchObject({ format: 'triple-threat', version: 2 })
+    expect(importer(texte, vide)).toEqual({ systemes: [systeme()], seances: [seance()], equipes: [equipe()], dejaPresents: 0 })
   })
-  it('n’écrase jamais : un système modifié entre-temps arrive en copie, un identique est ignoré', () => {
-    const texte = exporter([systeme()])
-    const autre = { ...systeme(), modifieLe: '2026-10-20T09:00:00Z' }
-    const r = importer(texte, [autre])
-    expect(r.nouveaux[0].id).not.toBe('s1')
-    expect(r.nouveaux[0].nom).toBe('Corne (copie)')
-    expect(importer(texte, [systeme()])).toEqual({ nouveaux: [], dejaPresents: 1 })
+  it('lit les fichiers de la version 1 (un seul ballon, sans genre ni catégorie)', () => {
+    const s = systeme()
+    const ancien = {
+      id: s.id, nom: s.nom, terrain: s.terrain, creeLe: s.creeLe, modifieLe: s.modifieLe,
+      etapes: s.etapes.map(({ ballons, ...e }) => ({ ...e, ballon: ballons[0] })),
+    }
+    const r = importer(JSON.stringify({ format: 'triple-threat', version: 1, systemes: [ancien] }), vide)
+    expect(r.systemes[0]).toMatchObject({ genre: 'systeme', categorie: 'Attaque', materiel: [] })
+    expect(r.systemes[0].etapes[0].ballons).toEqual(['A1'])
+  })
+  it('n’écrase jamais : copie si modifié, ignoré si identique, et la séance suit la copie', () => {
+    const texte = exporter({ systemes: [systeme()], seances: [seance()], equipes: [equipe()] })
+    const r = importer(texte, { systemes: [{ ...systeme(), modifieLe: 'autre' }], seances: [], equipes: [{ ...equipe(), nom: 'Mon équipe' }] })
+    expect(r.systemes[0].id).not.toBe('s1')
+    expect(r.systemes[0].nom).toBe('Corne (copie)')
+    expect(r.seances[0].blocs[0].document).toBe(r.systemes[0].id)
+    expect(r.equipes).toEqual([])
+    expect(r.dejaPresents).toBe(1)
+    expect(importer(texte, { systemes: [systeme()], seances: [seance()], equipes: [equipe()] }))
+      .toEqual({ systemes: [], seances: [], equipes: [], dejaPresents: 3 })
   })
   it('refuse un fichier illisible, étranger, plus récent ou abîmé avec un message clair', () => {
-    expect(() => importer('pas du json', [])).toThrow(/lisible/)
-    expect(() => importer('{"format":"autre"}', [])).toThrow(/ne vient pas/)
-    expect(() => importer('{"format":"triple-threat","version":2,"systemes":[]}', [])).toThrow(/plus récente/)
+    expect(() => importer('pas du json', vide)).toThrow(/lisible/)
+    expect(() => importer('{"format":"autre"}', vide)).toThrow(/ne vient pas/)
+    expect(() => importer('{"format":"triple-threat","version":3,"systemes":[]}', vide)).toThrow(/plus récente/)
     const sansEtapes = { ...systeme(), etapes: undefined }
-    expect(() => importer(JSON.stringify({ format: 'triple-threat', version: 1, systemes: [sansEtapes] }), [])).toThrow(/abîmé/)
+    expect(() => importer(JSON.stringify({ format: 'triple-threat', version: 2, systemes: [sansEtapes] }), vide)).toThrow(/abîmé/)
     const mauvaisChemin = systeme()
     mauvaisChemin.etapes[0].actions[0].chemin = [[1, 2]]
-    expect(() => importer(exporter([mauvaisChemin]), [])).toThrow(/abîmé/)
+    expect(() => importer(exporter({ systemes: [mauvaisChemin] }), vide)).toThrow(/abîmé/)
+    expect(() => importer(exporter({ systemes: [], seances: [{ ...seance(), blocs: [{ id: 'b' }] as never }] }), vide)).toThrow(/abîmé/)
   })
 })

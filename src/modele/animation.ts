@@ -6,7 +6,7 @@ import type { Etape, Point } from './types.ts'
 // et ne passe ou ne dribble qu'une fois qu'il a le ballon. Renvoie le « temps » de départ de chaque action.
 export function temps(e: Etape): Map<string, number> {
   const libre = new Map<string, number>()
-  const aLeBallon = new Map<string, number>(e.ballon ? [[e.ballon, 0]] : [])
+  const aLeBallon = new Map<string, number>(e.ballons.map((b) => [b, 0]))
   const depart = new Map<string, number>()
   for (const a of e.actions) {
     let k = libre.get(a.joueur) ?? 0
@@ -20,7 +20,7 @@ export function temps(e: Etape): Map<string, number> {
 
 export const nombreTemps = (e: Etape) => Math.max(1, ...[...temps(e).values()].map((k) => k + 1))
 
-export function etatAnime(e: Etape, t: number): { positions: Map<string, Point>; ballon: Point | null } {
+export function etatAnime(e: Etape, t: number): { positions: Map<string, Point>; ballons: Point[] } {
   const depart = temps(e)
   const u = Math.min(1, Math.max(0, t)) * nombreTemps(e) // avancement en « temps »
   const positions = new Map<string, Point>()
@@ -37,12 +37,16 @@ export function etatAnime(e: Etape, t: number): { positions: Map<string, Point>;
     }
     positions.set(j.id, p)
   }
-  let porteur = e.ballon
+  const porteurs = new Set(e.ballons)
+  const enVol: Point[] = []
   for (const a of e.actions) {
     if (a.type !== 'passe' || !a.vers) continue
     const k = depart.get(a.id)!
-    if (u >= k + 1) porteur = a.vers
-    else if (u > k) return { positions, ballon: pointA(polyligne(a.chemin), u - k) }
+    if (u <= k) continue
+    porteurs.delete(a.joueur)
+    if (u >= k + 1) porteurs.add(a.vers)
+    else enVol.push(pointA(polyligne(a.chemin), u - k))
   }
-  return { positions, ballon: (porteur && positions.get(porteur)) || null }
+  const tenus = [...porteurs].map((id) => positions.get(id)).filter((p): p is Point => !!p)
+  return { positions, ballons: [...tenus, ...enVol] }
 }

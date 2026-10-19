@@ -6,12 +6,14 @@ interface Props {
   titre: string
   bouton: string
   nom?: string // absent : on ne règle que le terrain
+  categories?: string[] // présent : on choisit aussi la catégorie
+  categorie?: string
   terrain: Terrain
-  onValider(nom: string, t: Terrain): void
+  onValider(nom: string, t: Terrain, categorie: string): void
   onAnnuler(): void
 }
 
-function Choix<T>({ libelle, valeur, options, onChange }: { libelle: string; valeur: T; options: [T, string][]; onChange(v: T): void }) {
+export function Choix<T>({ libelle, valeur, options, onChange }: { libelle: string; valeur: T; options: [T, string][]; onChange(v: T): void }) {
   return (
     <fieldset className="choix">
       <legend>{libelle}</legend>
@@ -24,19 +26,32 @@ function Choix<T>({ libelle, valeur, options, onChange }: { libelle: string; val
   )
 }
 
-const borne = (v: number, min: number, max: number, defaut: number) => (Number.isFinite(v) && v > 0 ? Math.min(max, Math.max(min, v)) : defaut)
-const VIDE = { id: 'apercu', description: '', joueurs: [], ballon: null, actions: [], textes: [] }
+// Catégories proposées + « Autre… » pour en créer une.
+export function ChoixCategorie({ categories, valeur, onChange }: { categories: string[]; valeur: string; onChange(c: string): void }) {
+  const liste = categories.includes(valeur) ? categories : [...categories, valeur]
+  return (
+    <Choix libelle="Catégorie" valeur={valeur} onChange={(c) => {
+      if (c !== null) return onChange(c)
+      const nouvelle = prompt('Nom de la nouvelle catégorie')?.trim()
+      if (nouvelle) onChange(nouvelle)
+    }} options={[...liste.map((c): [string | null, string] => [c, c]), [null, 'Autre…']]} />
+  )
+}
 
-export function ReglageTerrain({ titre, bouton, nom: nomInitial, terrain, onValider, onAnnuler }: Props) {
+const borne = (v: number, min: number, max: number, defaut: number) => (Number.isFinite(v) && v > 0 ? Math.min(max, Math.max(min, v)) : defaut)
+const VIDE = { id: 'apercu', description: '', joueurs: [], ballons: [], actions: [], textes: [] }
+
+export function ReglageTerrain({ titre, bouton, nom: nomInitial, categories, categorie: categorieInitiale, terrain, onValider, onAnnuler }: Props) {
   const [nom, setNom] = useState(nomInitial ?? '')
+  const [categorie, setCategorie] = useState(categorieInitiale ?? categories?.[0] ?? '')
   const [t, setT] = useState(terrain)
   const maj = (p: Partial<Terrain>) => setT((x) => ({ ...x, ...p }))
   const valide: Terrain = { ...t, longueur: borne(t.longueur, 12, 40, 28), largeur: borne(t.largeur, 8, 25, 15) }
-  const categorie = t.longueur === 28 && t.largeur === 15 ? (t.ligne3pts === 6.75 ? 'standard' : t.ligne3pts === null ? 'mini' : null) : null
+  const niveau = t.longueur === 28 && t.largeur === 15 ? (t.ligne3pts === 6.75 ? 'standard' : t.ligne3pts === null ? 'mini' : null) : null
 
   return (
     <div className="voile" onPointerDown={(e) => e.target === e.currentTarget && onAnnuler()}>
-      <form className="fenetre reglage" onSubmit={(e) => { e.preventDefault(); onValider(nom.trim() || 'Sans nom', valide) }}>
+      <form className="fenetre reglage" onSubmit={(e) => { e.preventDefault(); onValider(nom.trim() || 'Sans nom', valide, categorie) }}>
         <div className="champs">
           <h2>{titre}</h2>
           {nomInitial !== undefined && (
@@ -45,7 +60,8 @@ export function ReglageTerrain({ titre, bouton, nom: nomInitial, terrain, onVali
               <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex. : Corne, sortie de 1" autoFocus />
             </label>
           )}
-          <Choix libelle="Catégorie" valeur={categorie} onChange={(c) => maj({ longueur: 28, largeur: 15, ligne3pts: c === 'standard' ? 6.75 : null })}
+          {categories && <ChoixCategorie categories={categories} valeur={categorie} onChange={setCategorie} />}
+          <Choix libelle="Niveau" valeur={niveau} onChange={(c) => maj({ longueur: 28, largeur: 15, ligne3pts: c === 'standard' ? 6.75 : null })}
             options={[['standard', 'U13 à seniors'], ['mini', 'Mini-basket (U7 à U11)']]} />
           <Choix libelle="Ligne à 3 points" valeur={t.ligne3pts} onChange={(v) => maj({ ligne3pts: v })}
             options={[[6.75, '6,75 m'], [6.25, '6,25 m'], [null, 'Aucune']]} />

@@ -1,7 +1,9 @@
 // Coordonnées en mètres : x = distance à la ligne de fond (panier attaqué en x = 1,575), y = distance à la ligne de touche.
 export type Point = [number, number]
-export type Camp = 'attaque' | 'defense'
+export type Camp = 'attaque' | 'defense' | 'coach'
 export type TypeAction = 'coupe' | 'passe' | 'dribble' | 'ecran'
+export type Genre = 'systeme' | 'exercice'
+export type TypeMateriel = 'plot' | 'echelle' | 'ballon'
 
 export interface Joueur { id: string; camp: Camp; numero: number; x: number; y: number }
 
@@ -14,13 +16,39 @@ export interface Etape {
   id: string
   description: string
   joueurs: Joueur[]
-  ballon: string | null
+  ballons: string[] // ids des porteurs (un seul dans un système)
   actions: Action[]
   textes: Texte[]
 }
 
 export interface Terrain { vue: 'demi' | 'entier'; longueur: number; largeur: number; ligne3pts: number | null }
 
-export interface Systeme { id: string; nom: string; terrain: Terrain; creeLe: string; modifieLe: string; etapes: Etape[] }
+// Fixe pour tout le document ; angle en degrés (échelle).
+export interface Materiel { id: string; type: TypeMateriel; x: number; y: number; angle: number }
+
+// Un document de la bibliothèque : système ou exercice.
+export interface Systeme {
+  id: string
+  genre: Genre
+  nom: string
+  categorie: string
+  terrain: Terrain
+  creeLe: string
+  modifieLe: string
+  etapes: Etape[]
+  equipe: string | null // équipe dont on affiche les maillots
+  maillots: Record<string, string> // id du pion → id du joueur de l'équipe
+  materiel: Materiel[]
+  miseEnPlace: string
+  pointsCles: string
+  variantes: string
+  dureeConseillee: number // minutes
+}
+
+export interface JoueurEffectif { id: string; nom: string; maillot: string }
+export interface Equipe { id: string; nom: string; joueurs: JoueurEffectif[]; modifieLe: string }
+
+export interface Bloc { id: string; document: string; duree: number; note: string }
+export interface Seance { id: string; nom: string; date: string; blocs: Bloc[]; creeLe: string; modifieLe: string }
 
 export const nouvelId = (prefixe: string) => `${prefixe}-${Math.random().toString(36).slice(2, 10)}`

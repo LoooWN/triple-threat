@@ -4,13 +4,16 @@ import { placerDefense } from '../modele/defense.ts'
 import { attacherTrait, changerChemin, changerNumero, deplacerJoueur, etapeSuivante, propager, receveurPasse, retirerJoueur } from '../modele/etapes.ts'
 import { polyligne } from '../modele/geometrie.ts'
 import { lisserTrace } from '../modele/lissage.ts'
+import { assignerMaillot, maillotsAffiches } from '../modele/documents.ts'
+import { exporter } from '../modele/fichier.ts'
 import { miroirEtape, miroirSysteme } from '../modele/miroir.ts'
-import { nouvelId, type Action, type Camp, type Etape, type Point, type Systeme, type TypeAction } from '../modele/types.ts'
-import { retenirTerrain } from '../stockage.ts'
+import { nouvelId, type Action, type Camp, type Equipe, type Etape, type Point, type Systeme, type TypeAction } from '../modele/types.ts'
+import { partagerFichier, retenirTerrain } from '../stockage.ts'
 import { ApercuType, Icone } from './Icones.tsx'
 import { Message, useMessage } from './Message.tsx'
 import { ReglageTerrain } from './ReglageTerrain.tsx'
 import { TerrainSvg } from './Terrain.tsx'
+import { nomFichier } from './texte.ts'
 import { useHistorique } from './useHistorique.ts'
 import { borner, depuisEcran } from './vue.ts'
 
@@ -40,9 +43,11 @@ const pres = (x: number, y: number, l = 340, h = 230) => ({
   top: y - h - 30 > 8 ? y - h - 30 : Math.min(y + 30, innerHeight - h - 8),
 })
 
-interface Props { initial: Systeme; onChange(s: Systeme): void; onFermer(): void }
+type CibleMenu = Cible | 'plus' | 'equipe'
 
-export function Editeur({ initial, onChange, onFermer }: Props) {
+interface Props { initial: Systeme; equipes: Equipe[]; onChange(s: Systeme): void; onFermer(): void }
+
+export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
   const h = useHistorique(initial)
   const s = h.valeur
   const [iBrut, setI] = useState(0)
@@ -54,13 +59,16 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
   const apercuRef = useRef<Etape | null>(null)
   const [trait, setTrait] = useState<Point[] | null>(null)
   const [choix, setChoix] = useState<{ joueur: string; chemin: Point[]; x: number; y: number } | null>(null)
-  const [menu, setMenu] = useState<{ cible: Cible | 'miroir'; x: number; y: number } | null>(null)
+  const [menu, setMenu] = useState<{ cible: CibleMenu; x: number; y: number } | null>(null)
   const [couleur, setCouleur] = useState<string | null>(null)
   const [lecture, setLecture] = useState<'continue' | 'pas' | null>(null)
   const [anime, setAnime] = useState<ReturnType<typeof etatAnime> | null>(null)
   const [vitesse, setVitesse] = useState(1)
   const [reglage, setReglage] = useState(false)
   const [message, montrer] = useMessage()
+  const exercice = initial.genre === 'exercice'
+  const maxJoueurs = exercice ? 15 : 5
+  const equipe = equipes.find((e) => e.id === s.equipe)
   const svg = useRef<SVGSVGElement>(null)
   const geste = useRef<Geste | null>(null)
   const minuteur = useRef(0)
@@ -187,8 +195,8 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
 
   const ajouterJoueur = (camp: Camp, [x, y]: Point) => {
     const pris = etape.joueurs.filter((j) => j.camp === camp).map((j) => j.numero)
-    const numero = [1, 2, 3, 4, 5].find((n) => !pris.includes(n))
-    if (!numero) return montrer(camp === 'attaque' ? 'Les 5 attaquants sont déjà sur le terrain.' : 'Les 5 défenseurs sont déjà sur le terrain.')
+    const numero = Array.from({ length: maxJoueurs }, (_, k) => k + 1).find((n) => !pris.includes(n))
+    if (!numero) return montrer(`Les ${maxJoueurs} ${camp === 'attaque' ? 'attaquants' : 'défenseurs'} sont déjà sur le terrain.`)
     modifierEtape({ ...etape, joueurs: [...etape.joueurs, { id: nouvelId(camp === 'attaque' ? 'A' : 'D'), camp, numero, x, y }] })
   }
 
@@ -293,11 +301,28 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
     setLecture('continue')
   }
 
-  const contenuMenu = (c: Cible | 'miroir') => {
-    if (c === 'miroir') return (
+  const contenuMenu = (c: CibleMenu) => {
+    if (c === 'plus') return (
       <>
-        <button className="bouton large" onClick={() => miroir(false)}>Retourner cette étape</button>
-        <button className="bouton large" onClick={() => miroir(true)}>Retourner tout le système</button>
+        <button className="bouton large" onClick={() => miroir(false)}><Icone.miroir />Retourner cette étape (miroir)</button>
+        <button className="bouton large" onClick={() => miroir(true)}><Icone.miroir />Retourner {exercice ? 'tout l’exercice' : 'tout le système'}</button>
+        <button className="bouton large" onClick={() => { setMenu(null); setReglage(true) }}><Icone.terrain />Terrain…</button>
+        <button className="bouton large" onClick={() => setMenu({ ...menu!, cible: 'equipe' })}><Icone.maillot />Équipe (maillots)…</button>
+        <button className="bouton large" onClick={() => { setMenu(null); partagerFichier(`${nomFichier(s.nom)}.json`, exporter({ systemes: [s] })) }}>
+          <Icone.partager />Exporter (fichier)
+        </button>
+      </>
+    )
+    if (c === 'equipe') return (
+      <>
+        <p className="titre-menu">Maillots de quelle équipe ?</p>
+        {[null, ...equipes].map((e) => (
+          <button key={e?.id ?? 'aucune'} className="bouton large" aria-pressed={s.equipe === (e?.id ?? null)}
+            onClick={() => { modifierSysteme((sys) => ({ ...sys, equipe: e?.id ?? null })); setMenu(null) }}>
+            {e ? e.nom : 'Aucune (numéros de poste)'}
+          </button>
+        ))}
+        {!equipes.length && <p className="titre-menu">Crée d’abord une équipe dans l’onglet Effectif de la bibliothèque.</p>}
       </>
     )
     if (c.type === 'action') {
@@ -330,20 +355,34 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
     if (c.type === 'joueur') {
       const j = etape.joueurs.find((x) => x.id === c.id)
       if (!j) return null
-      const ballon = etape.ballon === j.id
+      const aLeBallon = etape.ballons.includes(j.id)
+      // Système : un seul ballon, qui change de mains. Exercice : chacun peut en avoir un.
+      const ballons = aLeBallon ? etape.ballons.filter((b) => b !== j.id) : exercice ? [...etape.ballons, j.id] : [j.id]
       return (
         <>
-          <div className="rangee numeros" role="group" aria-label="Numéro">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button key={n} className="numero" aria-pressed={j.numero === n}
-                onClick={() => { modifierSysteme((sys) => changerNumero(sys, j.id, n)); setMenu(null) }}>
-                {j.camp === 'defense' ? `X${n}` : n}
-              </button>
-            ))}
-          </div>
-          {j.camp === 'attaque' && (
-            <button className="bouton large" onClick={() => { modifierEtape({ ...etape, ballon: ballon ? null : j.id }); setMenu(null) }}>
-              {ballon ? 'Enlever le ballon' : 'Donner le ballon'}
+          {j.camp !== 'coach' && (
+            <div className="rangee numeros" role="group" aria-label="Numéro">
+              {Array.from({ length: maxJoueurs }, (_, k) => k + 1).map((n) => (
+                <button key={n} className="numero" aria-pressed={j.numero === n}
+                  onClick={() => { modifierSysteme((sys) => changerNumero(sys, j.id, n)); setMenu(null) }}>
+                  {j.camp === 'defense' ? `X${n}` : n}
+                </button>
+              ))}
+            </div>
+          )}
+          {equipe && j.camp !== 'coach' && (
+            <div className="rangee maillots" role="group" aria-label="Maillot">
+              {equipe.joueurs.filter((x) => x.maillot || x.nom).map((x) => (
+                <button key={x.id} className="maillot-choix" aria-pressed={s.maillots[j.id] === x.id}
+                  onClick={() => { modifierSysteme((sys) => assignerMaillot(sys, j.id, sys.maillots[j.id] === x.id ? null : x.id)); setMenu(null) }}>
+                  <strong>{x.maillot || '–'}</strong>{x.nom}
+                </button>
+              ))}
+            </div>
+          )}
+          {j.camp !== 'defense' && (
+            <button className="bouton large" onClick={() => { modifierEtape({ ...etape, ballons }); setMenu(null) }}>
+              {aLeBallon ? 'Enlever le ballon' : exercice ? 'Donner un ballon' : 'Donner le ballon'}
             </button>
           )}
           <button className="bouton large danger" onClick={() => { modifierEtape(retirerJoueur(etape, j.id)); setMenu(null) }}>
@@ -374,16 +413,15 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
   return (
     <main className={`editeur${vueEntier ? ' entier' : ''}${lecture ? ' en-lecture' : ''}`}>
       <header className="barre">
-        <button className="bouton" onClick={onFermer}><Icone.retour />Mes systèmes</button>
+        <button className="bouton" onClick={onFermer}><Icone.retour />Bibliothèque</button>
         <button className="titre" onClick={() => {
-          const nom = prompt('Nom du système', s.nom)?.trim()
+          const nom = prompt('Nom', s.nom)?.trim()
           if (nom) modifierSysteme((sys) => ({ ...sys, nom }))
         }}>{s.nom}</button>
         <div className="groupe">
-          <button className="bouton" onClick={() => { fermerTout(); h.annuler() }} disabled={!h.peutAnnuler}><Icone.annuler />Annuler</button>
-          <button className="bouton" onClick={() => { fermerTout(); h.retablir() }} disabled={!h.peutRetablir}><Icone.retablir />Rétablir</button>
-          <button className="bouton" onClick={(e) => setMenu({ cible: 'miroir', x: e.clientX, y: e.clientY })}><Icone.miroir />Miroir</button>
-          <button className="bouton" onClick={() => setReglage(true)}><Icone.terrain />Terrain</button>
+          <button className="bouton rond" onClick={() => { fermerTout(); h.annuler() }} disabled={!h.peutAnnuler} aria-label="Annuler"><Icone.annuler /></button>
+          <button className="bouton rond" onClick={() => { fermerTout(); h.retablir() }} disabled={!h.peutRetablir} aria-label="Rétablir"><Icone.retablir /></button>
+          <button className="bouton" onClick={(e) => setMenu({ cible: 'plus', x: e.clientX, y: e.clientY })}><Icone.plusDe />Plus</button>
         </div>
       </header>
 
@@ -404,7 +442,7 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
           defense: 'Touche le terrain pour poser X1 à X5.',
           texte: 'Touche le terrain pour écrire.',
         }[mode]}</p>
-        <TerrainSvg ref={svg} terrain={s.terrain} etape={visible} selection={selection} anime={anime}
+        <TerrainSvg ref={svg} terrain={s.terrain} etape={visible} selection={selection} anime={anime} maillots={maillotsAffiches(s, equipes)}
           trait={choix ? polyligne(choix.chemin) : trait}
           onPointerDown={surDown} onPointerMove={surMove} onPointerUp={surUp} onPointerCancel={surCancel}
           onContextMenu={(e) => e.preventDefault()} />

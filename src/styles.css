@@ -47,9 +47,10 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .bouton.danger { color: var(--danger); }
 .bouton.rond { width: 48px; padding: 0; flex: none; }
 .bouton.large { width: 100%; justify-content: flex-start; }
+.bouton.large[aria-pressed="true"] { background: var(--erable); color: var(--nuit); }
 
-/* ---------- Mes systèmes ---------- */
-.liste { min-height: 100dvh; max-width: 1200px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 20px) 28px 40px; }
+/* ---------- Bibliothèque ---------- */
+.bibliotheque { min-height: 100dvh; max-width: 1200px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 20px) 28px 40px; }
 .entete { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
 .entete h1 { display: flex; align-items: center; gap: 14px; margin: 0; font: 800 34px/1.1 var(--titre); }
 .entete h1 img { width: 48px; height: 48px; border-radius: 12px; }
@@ -68,6 +69,33 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .legende strong { font: 700 17px var(--titre); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .legende span { font-size: 14px; color: var(--craie-2); }
 .vide, .conseil { max-width: 70ch; color: var(--craie-2); }
+.onglets { display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 2px solid var(--nuit-3); }
+.onglets button {
+  min-height: 52px; padding: 0 20px; border: 0; border-bottom: 4px solid transparent; margin-bottom: -2px;
+  background: none; color: var(--craie-2); font: 800 19px var(--titre);
+}
+.onglets button[aria-selected="true"] { color: var(--craie); border-bottom-color: var(--erable); }
+.outils-liste { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.outils-liste .intro { flex: 1; margin: 0; color: var(--craie-2); }
+.recherche {
+  flex: 1; min-width: 0; min-height: 50px; padding: 0 16px; border: 0; border-radius: 12px;
+  background: var(--nuit-2); color: var(--craie); font-size: 17px;
+}
+.filtres { margin-bottom: 8px; }
+.titre-section { margin: 22px 0 10px; font: 800 22px var(--titre); }
+.equipe { margin-bottom: 18px; padding: 16px; border-radius: 16px; background: var(--nuit-2); }
+.equipe header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.equipe h2 { flex: 1; margin: 0; font: 800 22px var(--titre); }
+.joueurs { list-style: none; margin: 0 0 10px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 8px; }
+.joueurs li { display: flex; gap: 8px; }
+.joueurs input {
+  min-height: 48px; padding: 0 12px; border: 2px solid transparent; border-radius: 10px;
+  background: var(--nuit); color: var(--craie); font-size: 17px;
+}
+.joueurs .maillot { width: 70px; text-align: center; font: 800 20px var(--titre); }
+.joueurs .maillot.double { border-color: var(--danger); }
+.joueurs .nom-joueur { flex: 1; min-width: 0; }
+.alerte { color: var(--danger); font-weight: 700; }
 .conseil { margin-top: 32px; font-size: 14px; }
 
 /* ---------- Éditeur ---------- */
@@ -139,6 +167,10 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .joueur.attaque text { fill: #fff; }
 .joueur.defense .pion { fill: #fffaf3; stroke: var(--rouge); stroke-width: .09; }
 .joueur.defense text { fill: var(--rouge); font-size: .36px; }
+.joueur.coach .pion { fill: var(--ballon); stroke: var(--encre); stroke-width: .07; }
+.joueur.coach text { fill: var(--encre); }
+.joueur.maillot text { font-size: .42px; }
+.joueur text.nom { font: 700 .3px var(--titre); fill: var(--encre); paint-order: stroke; stroke: var(--erable); stroke-width: .12; }
 .ballon { pointer-events: none; }
 .ballon circle { fill: var(--ballon); stroke: var(--encre); stroke-width: .03; }
 .ballon path { fill: none; stroke: var(--encre); stroke-width: .025; }
@@ -202,6 +234,15 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
   font: 800 19px var(--titre);
 }
 .numero[aria-pressed="true"] { background: var(--erable); border-color: var(--erable); color: var(--nuit); }
+.numeros { flex-wrap: wrap; justify-content: flex-start; gap: 6px; }
+.maillots { flex-wrap: wrap; padding-bottom: 6px; }
+.maillot-choix {
+  display: flex; align-items: baseline; gap: 6px; min-height: 46px; padding: 0 12px; border: 2px solid var(--nuit-4); border-radius: 10px;
+  background: none; font-weight: 600;
+}
+.maillot-choix strong { font: 800 18px var(--titre); }
+.maillot-choix[aria-pressed="true"] { background: var(--erable); border-color: var(--erable); color: var(--nuit); }
+.titre-menu { margin: 4px 4px 2px; color: var(--craie-2); font-weight: 600; }
 .couleur { width: 46px; height: 46px; border: 3px solid var(--nuit-2); border-radius: 50%; box-shadow: 0 0 0 2px var(--nuit-4); }
 .couleur[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--erable); }
 
