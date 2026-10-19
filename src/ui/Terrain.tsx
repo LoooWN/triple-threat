@@ -12,9 +12,10 @@ interface Props extends ComponentProps<'svg'> {
   anime?: { positions: Map<string, Point>; ballons: Point[] } | null
   maillots?: Record<string, { maillot: string; nom: string }> // id du pion → joueur de l'équipe
   materiel?: Materiel[]
+  surligne?: Record<string, 'question' | 'juste' | 'faux'> // id du pion → anneau de couleur
 }
 
-export function TerrainSvg({ terrain, etape, selection, trait, anime, maillots = {}, materiel = [], ...svg }: Props) {
+export function TerrainSvg({ terrain, etape, selection, trait, anime, maillots = {}, materiel = [], surligne = {}, children, ...svg }: Props) {
   const { largeur, hauteur } = cadre(terrain)
   const E = (p: Point) => versEcran(terrain, p)
   const position = (id: string, x: number, y: number) => E(anime?.positions.get(id) ?? [x, y])
@@ -43,6 +44,7 @@ export function TerrainSvg({ terrain, etape, selection, trait, anime, maillots =
         return (
           <g key={j.id} data-joueur={j.id} className={`joueur ${j.camp}${m ? ' maillot' : ''}`} transform={`translate(${x} ${y})`}>
             <circle r={0.6} className="zone" />
+            {surligne[j.id] && <circle r={0.62} className={`anneau ${surligne[j.id]}`} />}
             <circle r={0.42} className="pion" />
             <text dominantBaseline="central">{texte}</text>
             {m?.nom && <text y={0.78} className="nom">{m.nom}</text>}
@@ -56,6 +58,7 @@ export function TerrainSvg({ terrain, etape, selection, trait, anime, maillots =
         </g>
       ))}
       {choisie && <Poignees a={choisie} terrain={terrain} />}
+      {children}
     </svg>
   )
 }

@@ -353,3 +353,60 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .epaisseur span { display: block; width: 26px; border-radius: 99px; background: var(--craie); }
 .epaisseur[aria-pressed="true"] { border-color: var(--erable); }
 .bouton[aria-pressed="true"] { background: var(--erable); color: var(--nuit); }
+
+/* ---------- Révision (aussi sur téléphone) ---------- */
+.liste-revision { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.liste-revision li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--nuit-2); }
+.liste-revision li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.liste-revision strong { font: 800 18px var(--titre); }
+.liste-revision span { color: var(--craie-2); font-size: 14px; }
+.revision {
+  display: flex; flex-direction: column; height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.titre-revision { flex: 1; min-width: 0; font: 800 20px var(--titre); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.choix-poste, .fin-revision {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  padding: 20px; text-align: center; overflow-y: auto;
+}
+.choix-poste h2 { margin: 0; font: 800 26px var(--titre); }
+.numeros-poste { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.numeros-poste .numero { width: 64px; height: 64px; font-size: 24px; }
+.choix-poste .bouton.large { width: min(320px, 100%); justify-content: center; }
+.fin-revision .score strong { font: 800 64px var(--titre); }
+.fin-revision ul { margin: 0; padding: 0; list-style: none; color: var(--craie-2); }
+.fin-revision h3 { margin: 8px 0 0; font: 800 18px var(--titre); }
+.fin-revision .boutons { flex-wrap: wrap; justify-content: center; }
+.question { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
+.question .zone-terrain { grid-area: auto; padding: 8px; }
+.panneau-question { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: var(--nuit-2); overflow-y: auto; }
+.panneau-question h2 { margin: 0; font: 800 22px var(--titre); }
+.avancement { margin: 0; color: var(--craie-2); font-size: 14px; }
+.reponses { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.reponses .bouton { min-height: 56px; font-size: 17px; }
+.reponses .bouton:last-child { grid-column: 1 / -1; }
+.correction { margin: 0; font: 800 22px var(--titre); }
+.correction.juste { color: #7fd69c; }
+.correction.faux { color: var(--danger); }
+.panneau-question .boutons { justify-content: stretch; }
+.panneau-question .boutons .bouton { flex: 1; }
+.terrain .cible { fill: rgb(46 125 79 / .25); stroke: #2e7d4f; stroke-width: .08; stroke-dasharray: .3 .2; pointer-events: none; }
+.terrain .erreur { stroke: var(--rouge); stroke-width: .14; stroke-linecap: round; pointer-events: none; }
+.joueur .anneau { fill: none; stroke-width: .13; }
+.joueur .anneau.question { stroke: var(--ballon); }
+.joueur .anneau.juste { stroke: #2e7d4f; }
+.joueur .anneau.faux { stroke: var(--rouge); }
+@media (orientation: portrait) {
+  .question { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .question.demi { grid-template-rows: minmax(0, 1.3fr) auto; }
+  .panneau-question { padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 600px) {
+  .barre { gap: 8px; padding: 6px 8px; }
+  .barre .bouton { padding: 0 12px; }
+  .panneau-question h2 { font-size: 19px; }
+  .bibliotheque { padding-left: 14px; padding-right: 14px; }
+  .entete h1 { font-size: 26px; }
+  .onglets { overflow-x: auto; }
+  .onglets button { padding: 0 12px; font-size: 16px; }
+}

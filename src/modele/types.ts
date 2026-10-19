@@ -52,3 +52,7 @@ export interface Bloc { id: string; document: string; duree: number; note: strin
 export interface Seance { id: string; nom: string; date: string; blocs: Bloc[]; creeLe: string; modifieLe: string }
 
 export const nouvelId = (prefixe: string) => `${prefixe}-${Math.random().toString(36).slice(2, 10)}`
+
+// Révision (sur l'appareil qui révise) : un score par passage, et les paquets reçus par lien.
+export interface Resultat { id: string; document: string; date: string; poste: number | null; bonnes: number; total: number }
+export interface Paquet { id: string; titre: string; creeLe: string; systemes: Systeme[] }

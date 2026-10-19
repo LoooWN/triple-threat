@@ -396,3 +396,56 @@ test('export en image et en PDF (système seul et playbook), hors ligne', async 
   expect(playbook.nom).toBe('playbook-tous-les-systemes.pdf')
   expect(pages(playbook.contenu)).toBe(3)
 })
+
+test('révision : choisir son poste, répondre, voir la correction et le score', async ({ page }) => {
+  await passerEnModeAvion(page)
+  await page.getByRole('button', { name: 'Nouveau système' }).click()
+  await page.getByPlaceholder('Ex. : Corne, sortie de 1').fill('Sortie du 2')
+  await page.getByRole('button', { name: 'Créer' }).click()
+  for (const [x, y] of [[9, 7.5], [5.5, 1.8], [5.5, 13.2]] as const) await toucher(page, x, y)
+  await page.getByRole('button', { name: 'Dessiner' }).click()
+  await tracer(page, [[5.5, 1.8], [4, 2.5], [2.5, 3.5]])
+  await page.getByRole('button', { name: 'Coupe' }).click()
+  await page.getByRole('button', { name: 'Ajouter l’étape suivante' }).click()
+  await page.getByRole('button', { name: 'Bibliothèque' }).click()
+
+  await page.getByRole('tab', { name: 'Révision' }).click()
+  await expect(page.getByRole('heading', { name: 'À retravailler' })).toBeVisible()
+  await page.getByRole('button', { name: 'Réviser' }).click()
+  await page.getByRole('button', { name: '2', exact: true }).click()
+
+  // Étape 1 : il coupe (juste), il arrive au poste bas (juste).
+  await expect(page.getByRole('heading', { name: 'Que fait le 2 ?' })).toBeVisible()
+  await expect(page.locator('.zone-terrain .action')).toHaveCount(0) // flèches cachées pendant la question
+  await page.getByRole('button', { name: 'Coupe' }).click()
+  await expect(page.getByText('Juste !')).toBeVisible()
+  await expect(page.locator('.zone-terrain .action')).toHaveCount(1) // correction : l'étape se montre
+  await page.getByRole('button', { name: 'Question suivante' }).click()
+  await expect(page.getByRole('button', { name: 'Valider' })).toBeDisabled()
+  await toucher(page, 2.8, 3.2)
+  await page.getByRole('button', { name: 'Valider' }).click()
+  await expect(page.getByText('Juste !')).toBeVisible()
+  await page.getByRole('button', { name: 'Question suivante' }).click()
+
+  // Étape 2 : il ne bouge pas, on répond faux.
+  await page.getByRole('button', { name: 'Dribble' }).click()
+  await expect(page.getByText('Non : il ne bouge pas.')).toBeVisible()
+  await page.getByRole('button', { name: 'Voir le score' }).click()
+  await expect(page.locator('.score')).toHaveText('2 / 3')
+  await expect(page.getByText('Étape 2 : le 2 : il ne bouge pas')).toBeVisible()
+
+  // Recommencer en répondant tout juste → « Bien su ».
+  await page.getByRole('button', { name: 'Recommencer' }).click()
+  await page.getByRole('button', { name: 'Coupe' }).click()
+  await page.getByRole('button', { name: 'Question suivante' }).click()
+  await toucher(page, 2.5, 3.5)
+  await page.getByRole('button', { name: 'Valider' }).click()
+  await page.getByRole('button', { name: 'Question suivante' }).click()
+  await page.getByRole('button', { name: 'Ne bouge pas' }).click()
+  await page.getByRole('button', { name: 'Voir le score' }).click()
+  await expect(page.locator('.score')).toHaveText('3 / 3')
+  await page.getByRole('button', { name: 'Terminer' }).click()
+  await page.getByRole('tab', { name: 'Révision' }).click()
+  await expect(page.getByRole('heading', { name: 'Bien su' })).toBeVisible()
+  await expect(page.getByText('dernier score 3 / 3')).toBeVisible()
+})

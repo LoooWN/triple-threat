@@ -8,18 +8,19 @@ import { Effectif } from './Effectif.tsx'
 import { imageDocument, pdfDocuments } from './export.tsx'
 import { Icone } from './Icones.tsx'
 import { Message, useMessage } from './Message.tsx'
+import { RevisionAccueil } from './Revision.tsx'
 import { ListeSeances } from './Seances.tsx'
 import { ChoixCategorie, ReglageTerrain } from './ReglageTerrain.tsx'
 import { TerrainSvg } from './Terrain.tsx'
 import { maintenant, nomFichier, pluriel } from './texte.ts'
 import { useExport } from './useExport.tsx'
 
-export type Onglet = Genre | 'seances' | 'effectif'
-const ONGLETS: [Onglet, string][] = [['systeme', 'Systèmes'], ['exercice', 'Exercices'], ['seances', 'Séances'], ['effectif', 'Effectif']]
+export type Onglet = Genre | 'seances' | 'effectif' | 'revision'
+const ONGLETS: [Onglet, string][] = [['systeme', 'Systèmes'], ['exercice', 'Exercices'], ['seances', 'Séances'], ['effectif', 'Effectif'], ['revision', 'Révision']]
 
-interface Props { donnees: Donnees; onglet: Onglet; setOnglet(o: Onglet): void; ouvrir(e: Ecran): void }
+interface Props { donnees: Donnees; revisables: Systeme[]; onglet: Onglet; setOnglet(o: Onglet): void; ouvrir(e: Ecran): void }
 
-export function Bibliotheque({ donnees, onglet, setOnglet, ouvrir }: Props) {
+export function Bibliotheque({ donnees, revisables, onglet, setOnglet, ouvrir }: Props) {
   const [message, montrer] = useMessage()
   const fichier = useRef<HTMLInputElement>(null)
   const { systemes, seances, equipes } = donnees
@@ -74,6 +75,7 @@ export function Bibliotheque({ donnees, onglet, setOnglet, ouvrir }: Props) {
       )}
       {onglet === 'seances' && <ListeSeances seances={seances} documents={tout.systemes} ouvrir={ouvrir} />}
       {onglet === 'effectif' && <Effectif equipes={equipes} />}
+      {onglet === 'revision' && <RevisionAccueil documents={revisables} resultats={donnees.resultats.elements ?? []} ouvrir={ouvrir} />}
 
       <p className="conseil">
         Tout reste sur cet iPad. Safari peut effacer les données d’une appli peu utilisée :

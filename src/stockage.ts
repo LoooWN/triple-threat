@@ -1,15 +1,17 @@
 import { createStore, del, set, values } from 'idb-keyval'
 import { normaliser } from './modele/documents.ts'
-import type { Equipe, Seance, Systeme, Terrain } from './modele/types.ts'
+import type { Equipe, Paquet, Resultat, Seance, Systeme, Terrain } from './modele/types.ts'
 
 // Une base par collection (idb-keyval ne gère qu'un magasin par base).
 const bases = {
   systemes: createStore('triple-threat', 'systemes'),
   seances: createStore('triple-threat-seances', 'seances'),
   equipes: createStore('triple-threat-equipes', 'equipes'),
+  resultats: createStore('triple-threat-resultats', 'resultats'),
+  paquets: createStore('triple-threat-paquets', 'paquets'),
 }
 export type Collection = keyof typeof bases
-export interface Elements { systemes: Systeme; seances: Seance; equipes: Equipe }
+export interface Elements { systemes: Systeme; seances: Seance; equipes: Equipe; resultats: Resultat; paquets: Paquet }
 
 export async function lister<C extends Collection>(c: C): Promise<Elements[C][]> {
   const tout = await values<Elements[C]>(bases[c])
