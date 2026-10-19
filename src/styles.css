@@ -146,6 +146,13 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
   background: var(--nuit); color: var(--craie); font: 16px/1.4 -apple-system, system-ui, "Segoe UI", sans-serif;
 }
 .lecture { display: flex; gap: 8px; }
+.bascule button { flex: 1; }
+.duree { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.duree input { width: 80px; min-height: 48px; padding: 0 10px; border: 0; border-radius: 10px; background: var(--nuit); color: var(--craie); font-size: 18px; }
+.choix-materiel {
+  position: absolute; top: 18px; left: 50%; transform: translateX(-50%); padding: 6px; border-radius: 14px;
+  background: rgb(20 33 48 / .9); flex-wrap: nowrap;
+}
 .lecture .principal { flex: 1; }
 .vitesse { display: flex; flex-direction: column; gap: 2px; font-size: 14px; color: var(--craie-2); }
 .vitesse input { width: 100%; height: 32px; accent-color: var(--erable); }
@@ -172,6 +179,12 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .joueur.maillot text { font-size: .42px; }
 .joueur text.nom { font: 700 .3px var(--titre); fill: var(--encre); paint-order: stroke; stroke: var(--erable); stroke-width: .12; }
 .ballon { pointer-events: none; }
+.materiel .zone { fill: transparent; stroke: transparent; stroke-width: 1.2; pointer-events: all; }
+.materiel.plot .base { fill: #ef6c1a; stroke: #9c3f08; stroke-width: .04; }
+.materiel.plot .sommet { fill: #ffc58f; }
+.materiel.ballon circle:not(.zone) { fill: var(--ballon); stroke: var(--encre); stroke-width: .03; }
+.materiel.ballon path { fill: none; stroke: var(--encre); stroke-width: .025; }
+.materiel.echelle path:not(.zone) { fill: none; stroke: #2a3f57; stroke-width: .07; stroke-linecap: round; }
 .ballon circle { fill: var(--ballon); stroke: var(--encre); stroke-width: .03; }
 .ballon path { fill: none; stroke: var(--encre); stroke-width: .025; }
 

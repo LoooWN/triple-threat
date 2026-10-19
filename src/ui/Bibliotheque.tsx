@@ -12,7 +12,7 @@ import { TerrainSvg } from './Terrain.tsx'
 import { maintenant, nomFichier, pluriel } from './texte.ts'
 
 export type Onglet = Genre | 'seances' | 'effectif'
-const ONGLETS: [Onglet, string][] = [['systeme', 'Systèmes'], ['effectif', 'Effectif']]
+const ONGLETS: [Onglet, string][] = [['systeme', 'Systèmes'], ['exercice', 'Exercices'], ['effectif', 'Effectif']]
 
 interface Props { donnees: Donnees; onglet: Onglet; setOnglet(o: Onglet): void; ouvrir(e: Ecran): void }
 

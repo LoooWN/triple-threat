@@ -198,3 +198,55 @@ test('les systèmes enregistrés par la version 1 sont repris sans perte', async
   await expect(page.locator('.ballon')).toHaveCount(1)
   await expect(page.getByPlaceholder('Ce qui se passe à cette étape…')).toHaveValue('entrée')
 })
+
+test('exercice : plus de 5 joueurs, coach, matériel, plusieurs ballons et fiche', async ({ page }) => {
+  await passerEnModeAvion(page)
+  await page.getByRole('tab', { name: 'Exercices' }).click()
+  await page.getByRole('button', { name: 'Nouvel exercice' }).click()
+  await page.getByPlaceholder('Ex. : Corne, sortie de 1').fill('Tir en course')
+  await page.getByRole('button', { name: 'Tir', exact: true }).click()
+  await page.getByRole('button', { name: 'Créer' }).click()
+
+  // 6 attaquants (au-delà de 5 en exercice).
+  for (const y of [2, 4, 6, 8, 10, 12]) await toucher(page, 10, y)
+  await expect(page.locator('.joueur.attaque')).toHaveCount(6)
+  await expect(page.locator('.joueur.attaque text').last()).toHaveText('6')
+
+  // Coach, deux plots et une échelle qu'on tourne.
+  await page.getByRole('button', { name: 'Coach' }).click()
+  await toucher(page, 3, 12)
+  await expect(page.locator('.joueur.coach')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Matériel' }).click()
+  await toucher(page, 6, 3)
+  await toucher(page, 6, 12)
+  await page.getByRole('group', { name: 'Matériel' }).getByRole('button', { name: 'Échelle' }).click()
+  await toucher(page, 12, 7.5)
+  await expect(page.locator('.materiel.plot')).toHaveCount(2)
+  await expect(page.locator('.materiel.echelle')).toHaveCount(1)
+  const avant = await page.locator('.materiel.echelle path').nth(1).getAttribute('d')
+  await toucher(page, 12, 7.5)
+  await page.getByRole('button', { name: 'Tourner de 45°' }).click()
+  await page.mouse.click(5, 5)
+  expect(await page.locator('.materiel.echelle path').nth(1).getAttribute('d')).not.toBe(avant)
+
+  // Deux joueurs avec un ballon chacun, et le coach qui reçoit une passe.
+  await page.getByRole('button', { name: 'Placer' }).click()
+  for (const y of [2, 4]) {
+    await toucher(page, 10, y)
+    await page.getByRole('button', { name: 'Donner un ballon' }).click()
+  }
+  await expect(page.locator('.ballon')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Dessiner' }).click()
+  await tracer(page, [[10, 2], [7, 6], [3.2, 11.6]])
+  await page.getByRole('button', { name: 'Passe' }).click()
+  await page.getByRole('button', { name: 'Ajouter l’étape suivante' }).click()
+  await expect(page.locator('.ballon')).toHaveCount(2)
+
+  // Fiche de l'exercice.
+  await page.getByRole('button', { name: 'Fiche' }).click()
+  await page.getByLabel('Mise en place').fill('2 colonnes aux ailes, un ballon par colonne.')
+  await page.getByLabel('Points clés').fill('Deux appuis, main extérieure.')
+  await page.getByRole('button', { name: 'Bibliothèque' }).click()
+  await page.getByLabel('Rechercher').fill('main exterieure')
+  await expect(page.locator('.carte strong')).toHaveText(['Tir en course'])
+})

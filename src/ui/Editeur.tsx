@@ -7,7 +7,7 @@ import { lisserTrace } from '../modele/lissage.ts'
 import { assignerMaillot, maillotsAffiches } from '../modele/documents.ts'
 import { exporter } from '../modele/fichier.ts'
 import { miroirEtape, miroirSysteme } from '../modele/miroir.ts'
-import { nouvelId, type Action, type Camp, type Equipe, type Etape, type Point, type Systeme, type TypeAction } from '../modele/types.ts'
+import { nouvelId, type Action, type Camp, type Equipe, type Etape, type Materiel, type Point, type Systeme, type TypeAction, type TypeMateriel } from '../modele/types.ts'
 import { partagerFichier, retenirTerrain } from '../stockage.ts'
 import { ApercuType, Icone } from './Icones.tsx'
 import { Message, useMessage } from './Message.tsx'
@@ -17,8 +17,8 @@ import { nomFichier } from './texte.ts'
 import { useHistorique } from './useHistorique.ts'
 import { borner, depuisEcran } from './vue.ts'
 
-type Mode = 'placer' | 'dessiner' | 'defense' | 'texte'
-type Cible = { type: 'joueur' | 'action' | 'texte' | 'poignee'; id: string }
+type Mode = 'placer' | 'dessiner' | 'defense' | 'texte' | 'coach' | 'materiel'
+type Cible = { type: 'joueur' | 'action' | 'texte' | 'poignee' | 'materiel'; id: string }
 interface Geste { cible: Cible | null; client: [number, number]; debut: Point; pts: Point[]; bouge: boolean; dessin: boolean; long: boolean }
 
 const ENCRE = '#1b2430'
@@ -26,12 +26,14 @@ const ROUGE = '#b8322a'
 const COULEURS = [ENCRE, ROUGE, '#1f5fa8', '#2e7d4f', '#7a3fa0']
 const TYPES: [TypeAction, string][] = [['coupe', 'Coupe'], ['passe', 'Passe'], ['dribble', 'Dribble'], ['ecran', 'Écran']]
 const DUREE_TEMPS = 1800 // ms par « temps » d'une étape, à vitesse ×1
+const MATERIEL: [TypeMateriel, string][] = [['plot', 'Plot'], ['echelle', 'Échelle'], ['ballon', 'Ballon au sol']]
 
 function lireCible(el: EventTarget): Cible | null {
-  const c = (el as Element).closest?.('[data-poignee],[data-joueur],[data-texte],[data-action]') as SVGElement | null
+  const c = (el as Element).closest?.('[data-poignee],[data-joueur],[data-texte],[data-action],[data-materiel]') as SVGElement | null
   if (!c) return null
   const d = c.dataset
   if (d.poignee !== undefined) return { type: 'poignee', id: d.poignee }
+  if (d.materiel) return { type: 'materiel', id: d.materiel }
   if (d.joueur) return { type: 'joueur', id: d.joueur }
   if (d.texte) return { type: 'texte', id: d.texte }
   return { type: 'action', id: d.action! }
@@ -65,6 +67,10 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
   const [anime, setAnime] = useState<ReturnType<typeof etatAnime> | null>(null)
   const [vitesse, setVitesse] = useState(1)
   const [reglage, setReglage] = useState(false)
+  const [typeMateriel, setTypeMateriel] = useState<TypeMateriel>('plot')
+  const [apercuMateriel, setApercuMaterielEtat] = useState<Materiel[] | null>(null)
+  const apercuMaterielRef = useRef<Materiel[] | null>(null)
+  const [panneau, setPanneau] = useState<'etapes' | 'fiche'>('etapes')
   const [message, montrer] = useMessage()
   const exercice = initial.genre === 'exercice'
   const maxJoueurs = exercice ? 15 : 5
@@ -82,6 +88,7 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
   }, [s, onChange])
 
   const setApercu = (e: Etape | null) => { apercuRef.current = e; setApercuEtat(e) }
+  const setApercuMateriel = (m: Materiel[] | null) => { apercuMaterielRef.current = m; setApercuMaterielEtat(m) }
   const visible = apercu ?? etape
 
   // Toute modification d'une étape passe par ici : les étapes suivantes suivent.
@@ -94,9 +101,9 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
       return { ...sys, etapes: propager(etapes, i, avant) }
     }, cle)
   }
-  const modifierSysteme = (f: (sys: Systeme) => Systeme) => {
+  const modifierSysteme = (f: (sys: Systeme) => Systeme, cle?: string) => {
     setAnime(null)
-    h.modifier(f)
+    h.modifier(f, cle)
   }
 
   const versTerrain = (x: number, y: number): Point => {
@@ -114,9 +121,9 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
     e.currentTarget.setPointerCapture(e.pointerId)
     const cible = lireCible(e.target)
     const p = versTerrain(e.clientX, e.clientY)
-    const dessin = (mode === 'dessiner' || e.pointerType === 'pen') && cible?.type !== 'poignee'
+    const dessin = (mode === 'dessiner' || e.pointerType === 'pen') && cible?.type !== 'poignee' && cible?.type !== 'materiel'
     geste.current = { cible, client: [e.clientX, e.clientY], debut: p, pts: [p], bouge: false, dessin, long: false }
-    const appuiLong = cible && (cible.type === 'action' || cible.type === 'texte' || (cible.type === 'joueur' && !dessin))
+    const appuiLong = cible && (cible.type === 'action' || cible.type === 'texte' || cible.type === 'materiel' || (cible.type === 'joueur' && !dessin))
     if (appuiLong) {
       const [x, y] = [e.clientX, e.clientY]
       minuteur.current = window.setTimeout(() => {
@@ -141,7 +148,8 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
       return
     }
     const c = g.cible
-    if (c?.type === 'joueur') setApercu(deplacerJoueur(etape, c.id, p))
+    if (c?.type === 'materiel') setApercuMateriel(s.materiel.map((m) => (m.id === c.id ? { ...m, x: p[0], y: p[1] } : m)))
+    else if (c?.type === 'joueur') setApercu(deplacerJoueur(etape, c.id, p))
     else if (c?.type === 'texte') setApercu({ ...etape, textes: etape.textes.map((t) => (t.id === c.id ? { ...t, x: p[0], y: p[1] } : t)) })
     else if (c?.type === 'poignee' && selection) {
       const a = etape.actions.find((x) => x.id === selection)
@@ -156,6 +164,11 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
     geste.current = null
     if (!g || g.long) return
     if (g.dessin && g.bouge) return finirTrait(g.pts, e.clientX, e.clientY)
+    if (g.bouge && g.cible?.type === 'materiel') {
+      const materiel = apercuMaterielRef.current
+      setApercuMateriel(null)
+      return materiel && modifierSysteme((sys) => ({ ...sys, materiel }))
+    }
     if (g.bouge) {
       let fin = apercuRef.current
       setApercu(null)
@@ -174,12 +187,13 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
     clearTimeout(minuteur.current)
     geste.current = null
     setApercu(null)
+    setApercuMateriel(null)
     setTrait(null)
   }
 
   const toucher = (c: Cible | null, p: Point, dessin: boolean, x: number, y: number) => {
     // Un joueur touché ouvre ses options : un toucher par erreur ne change plus le ballon.
-    if (c?.type === 'joueur') return setMenu({ cible: c, x, y })
+    if (c?.type === 'joueur' || c?.type === 'materiel') return setMenu({ cible: c, x, y })
     if (c?.type === 'action') return setSelection(c.id === selection ? null : c.id)
     if (c?.type === 'texte') return editerTexte(c.id)
     if (c?.type === 'poignee') return
@@ -187,6 +201,11 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
     if (dessin) return
     if (mode === 'placer') ajouterJoueur('attaque', p)
     else if (mode === 'defense') ajouterJoueur('defense', p)
+    else if (mode === 'coach') modifierEtape({ ...etape, joueurs: [...etape.joueurs, { id: nouvelId('C'), camp: 'coach', numero: 0, x: p[0], y: p[1] }] })
+    else if (mode === 'materiel') {
+      const m: Materiel = { id: nouvelId('m'), type: typeMateriel, x: p[0], y: p[1], angle: 0 }
+      modifierSysteme((sys) => ({ ...sys, materiel: [...sys.materiel, m] }))
+    }
     else if (mode === 'texte') {
       const texte = prompt('Texte à afficher sur le terrain')?.trim()
       if (texte) modifierEtape({ ...etape, textes: [...etape.textes, { id: nouvelId('t'), x: p[0], y: p[1], texte }] })
@@ -325,6 +344,23 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
         {!equipes.length && <p className="titre-menu">Crée d’abord une équipe dans l’onglet Effectif de la bibliothèque.</p>}
       </>
     )
+    if (c.type === 'materiel') {
+      const m = s.materiel.find((x) => x.id === c.id)
+      if (!m) return null
+      return (
+        <>
+          {m.type === 'echelle' && (
+            <button className="bouton large" onClick={() => modifierSysteme((sys) => ({
+              ...sys, materiel: sys.materiel.map((x) => (x.id === m.id ? { ...x, angle: (x.angle + 45) % 180 } : x)),
+            }))}><Icone.tourner />Tourner de 45°</button>
+          )}
+          <button className="bouton large danger" onClick={() => {
+            modifierSysteme((sys) => ({ ...sys, materiel: sys.materiel.filter((x) => x.id !== m.id) }))
+            setMenu(null)
+          }}><Icone.corbeille />Retirer {m.type === 'plot' ? 'le plot' : m.type === 'echelle' ? 'l’échelle' : 'le ballon'}</button>
+        </>
+      )
+    }
     if (c.type === 'action') {
       const a = etape.actions.find((x) => x.id === c.id)
       if (!a) return null
@@ -407,6 +443,7 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
     ['placer', 'Placer', Icone.placer],
     ['dessiner', 'Dessiner', Icone.dessiner],
     ['defense', 'Défenseur', Icone.defenseur],
+    ...(exercice ? [['coach', 'Coach', Icone.coach], ['materiel', 'Matériel', Icone.plot]] as [Mode, string, () => JSX.Element][] : []),
     ['texte', 'Texte', Icone.texte],
   ]
 
@@ -432,23 +469,54 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
         <button className="outil" onClick={() => {
           if (!etape.joueurs.some((j) => j.camp === 'attaque')) return montrer('Place d’abord les attaquants.')
           modifierEtape(placerDefense(etape, s.terrain))
-        }}><Icone.defense5 />5 défenseurs</button>
+        }}><Icone.defense5 />{exercice ? 'Défense auto' : '5 défenseurs'}</button>
       </nav>
 
       <div className="zone-terrain">
         <p className="aide">{{
           placer: 'Touche le terrain : joueur suivant. Touche un joueur : numéro, ballon. Glisse : déplacer.',
           dessiner: 'Trace une action en partant d’un joueur.',
-          defense: 'Touche le terrain pour poser X1 à X5.',
+          defense: `Touche le terrain pour poser X1 à X${maxJoueurs}.`,
           texte: 'Touche le terrain pour écrire.',
+          coach: 'Touche le terrain pour poser le coach. Il peut passer et recevoir.',
+          materiel: 'Touche le terrain pour poser le matériel choisi. Glisse pour le déplacer.',
         }[mode]}</p>
-        <TerrainSvg ref={svg} terrain={s.terrain} etape={visible} selection={selection} anime={anime} maillots={maillotsAffiches(s, equipes)}
+        {mode === 'materiel' && (
+          <div className="choix-materiel segments" role="group" aria-label="Matériel">
+            {MATERIEL.map(([t, nom]) => (
+              <button key={t} aria-pressed={typeMateriel === t} onClick={() => setTypeMateriel(t)}>{nom}</button>
+            ))}
+          </div>
+        )}
+        <TerrainSvg ref={svg} terrain={s.terrain} etape={visible} selection={selection} anime={anime} maillots={maillotsAffiches(s, equipes)} materiel={apercuMateriel ?? s.materiel}
           trait={choix ? polyligne(choix.chemin) : trait}
           onPointerDown={surDown} onPointerMove={surMove} onPointerUp={surUp} onPointerCancel={surCancel}
           onContextMenu={(e) => e.preventDefault()} />
       </div>
 
       <aside className="panneau">
+        {exercice && (
+          <div className="segments bascule" role="group" aria-label="Panneau">
+            <button aria-pressed={panneau === 'etapes'} onClick={() => setPanneau('etapes')}>Étapes</button>
+            <button aria-pressed={panneau === 'fiche'} onClick={() => setPanneau('fiche')}>Fiche</button>
+          </div>
+        )}
+        {panneau === 'fiche' && exercice ? (
+          <>
+            {([['miseEnPlace', 'Mise en place', 'Joueurs, colonnes, matériel…'], ['pointsCles', 'Points clés', 'Ce sur quoi insister…'], ['variantes', 'Variantes', 'Pour faire évoluer l’exercice…']] as const).map(([champ, titre, aide]) => (
+              <label key={champ} className="description">
+                {titre}
+                <textarea value={s[champ]} placeholder={aide}
+                  onChange={(e) => modifierSysteme((sys) => ({ ...sys, [champ]: e.target.value }), champ)} />
+              </label>
+            ))}
+            <label className="duree">
+              Durée conseillée
+              <input type="number" inputMode="numeric" min={1} max={120} value={s.dureeConseillee}
+                onChange={(e) => modifierSysteme((sys) => ({ ...sys, dureeConseillee: Math.max(1, Math.min(120, e.target.valueAsNumber || 1)) }), 'duree')} /> min
+            </label>
+          </>
+        ) : (<>
         <div className="etapes" role="tablist" aria-label="Étapes">
           {s.etapes.map((e, k) => (
             <button key={e.id} role="tab" aria-selected={k === i} className="pastille" onClick={() => allerA(k)}>{k + 1}</button>
@@ -473,6 +541,7 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
           Vitesse ×{vitesse.toLocaleString('fr-FR')}
           <input type="range" min={0.5} max={2} step={0.25} value={vitesse} onChange={(e) => setVitesse(e.target.valueAsNumber)} />
         </label>
+        </>)}
       </aside>
 
       {choix && (

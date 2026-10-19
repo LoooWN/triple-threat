@@ -26,6 +26,9 @@ export const Icone = {
   corbeille: () => <I d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
   partager: () => <I d="M12 15V3M7 8l5-5 5 5M5 12v8h14v-8" />,
   importer: () => <I d="M12 3v12M7 10l5 5 5-5M5 15v5h14v-5" />,
+  coach: () => <I d="M15 8.5a5.5 5.5 0 1 1-5.2 7.3H3v-5h9.3M15 8.5V5h5v3.5zM10 13.3h.01" />,
+  plot: () => <I d="M12 3l5.5 16h-11zM4 20h16M9.7 10h4.6M8.6 13.5h6.8" />,
+  tourner: () => <I d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4" />,
   maillot: () => <I d="M8 3L3 6l2 4 2-1v12h10V9l2 1 2-4-5-3c0 2-1.8 3.2-4 3.2S8 5 8 3z" />,
   plusDe: () => <I d="M7 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM21 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" plein />,
 }

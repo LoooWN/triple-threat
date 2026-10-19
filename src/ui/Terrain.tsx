@@ -1,6 +1,6 @@
 import { useId, type ComponentProps } from 'react'
 import { PANIER_X } from '../modele/defense.ts'
-import type { Action, Etape, Point, Terrain } from '../modele/types.ts'
+import type { Action, Etape, Materiel, Point, Terrain } from '../modele/types.ts'
 import { chemin2d, traceAction } from './dessinActions.ts'
 import { cadre, matrice, versEcran } from './vue.ts'
 
@@ -11,9 +11,10 @@ interface Props extends ComponentProps<'svg'> {
   trait?: Point[] | null
   anime?: { positions: Map<string, Point>; ballons: Point[] } | null
   maillots?: Record<string, { maillot: string; nom: string }> // id du pion → joueur de l'équipe
+  materiel?: Materiel[]
 }
 
-export function TerrainSvg({ terrain, etape, selection, trait, anime, maillots = {}, ...svg }: Props) {
+export function TerrainSvg({ terrain, etape, selection, trait, anime, maillots = {}, materiel = [], ...svg }: Props) {
   const { largeur, hauteur } = cadre(terrain)
   const E = (p: Point) => versEcran(terrain, p)
   const position = (id: string, x: number, y: number) => E(anime?.positions.get(id) ?? [x, y])
@@ -26,6 +27,7 @@ export function TerrainSvg({ terrain, etape, selection, trait, anime, maillots =
     <svg viewBox={`0 0 ${largeur} ${hauteur}`} className="terrain" {...svg}>
       <rect width={largeur} height={hauteur} className="abords" />
       <Lignes terrain={terrain} />
+      {materiel.map((m) => <MaterielSvg key={m.id} m={m} terrain={terrain} />)}
       <g className={anime ? 'actions estompees' : 'actions'}>
         {etape.actions.map((a) => <ActionSvg key={a.id} a={a} terrain={terrain} choisie={a.id === selection} />)}
       </g>
@@ -40,7 +42,7 @@ export function TerrainSvg({ terrain, etape, selection, trait, anime, maillots =
         const texte = m ? m.maillot : j.camp === 'coach' ? 'C' : j.camp === 'defense' ? `X${j.numero}` : j.numero
         return (
           <g key={j.id} data-joueur={j.id} className={`joueur ${j.camp}${m ? ' maillot' : ''}`} transform={`translate(${x} ${y})`}>
-            <circle r={0.8} className="zone" />
+            <circle r={0.6} className="zone" />
             <circle r={0.42} className="pion" />
             <text dominantBaseline="central">{texte}</text>
             {m?.nom && <text y={0.78} className="nom">{m.nom}</text>}
@@ -55,6 +57,29 @@ export function TerrainSvg({ terrain, etape, selection, trait, anime, maillots =
       ))}
       {choisie && <Poignees a={choisie} terrain={terrain} />}
     </svg>
+  )
+}
+
+// Plot, ballon au sol, ou échelle de rythme (3 m × 0,5 m, barreaux tous les 0,5 m) orientée par `angle`.
+function MaterielSvg({ m, terrain }: { m: Materiel; terrain: Terrain }) {
+  const [x, y] = versEcran(terrain, [m.x, m.y])
+  if (m.type !== 'echelle') return (
+    <g data-materiel={m.id} className={`materiel ${m.type}`} transform={`translate(${x} ${y})`}>
+      <circle r={0.6} className="zone" />
+      {m.type === 'plot' ? <><circle r={0.24} className="base" /><circle r={0.1} className="sommet" /></> : <><circle r={0.2} /><path d="M-0.2 0 H0.2 M0 -0.2 V0.2" /></>}
+    </g>
+  )
+  const a = (m.angle * Math.PI) / 180
+  const [b1, b2] = [-1.5, 1.5].map((k) => versEcran(terrain, [m.x + Math.cos(a) * k, m.y + Math.sin(a) * k]))
+  const [ux, uy] = [(b2[0] - b1[0]) / 3, (b2[1] - b1[1]) / 3]
+  const [nx, ny] = [-uy * 0.25, ux * 0.25]
+  const barreaux = Array.from({ length: 7 }, (_, k) => [b1[0] + ux * k * 0.5, b1[1] + uy * k * 0.5])
+  return (
+    <g data-materiel={m.id} className="materiel echelle">
+      <path d={chemin2d([b1, b2])} className="zone" />
+      <path d={`${chemin2d([[b1[0] + nx, b1[1] + ny], [b2[0] + nx, b2[1] + ny]])} ${chemin2d([[b1[0] - nx, b1[1] - ny], [b2[0] - nx, b2[1] - ny]])}`} />
+      {barreaux.map(([px, py], k) => <path key={k} d={chemin2d([[px + nx, py + ny], [px - nx, py - ny]])} />)}
+    </g>
   )
 }
 
