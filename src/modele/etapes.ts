@@ -1,4 +1,4 @@
-import { deplacerDebut, deplacerFin, fin, proche } from './geometrie.ts'
+import { deplacerDebut, deplacerFin, distance, fin, proche } from './geometrie.ts'
 import { nouvelId, type Action, type Etape, type Point } from './types.ts'
 
 export const estDeplacement = (a: Action) => a.type !== 'passe'
@@ -79,4 +79,30 @@ export function propager(etapes: Etape[], i: number, avant: Etape): Etape[] {
     res[k] = suivante
   }
   return res
+}
+
+// Un trait part d'un joueur, ou du bout de sa dernière coupe / dribble / écran (pour enchaîner).
+export function attacherTrait(e: Etape, chemin: Point[]): { joueur: string; chemin: Point[] } | null {
+  let meilleur: { joueur: string; ancre: Point; d: number } | null = null
+  for (const j of e.joueurs) {
+    const ancres: Point[] = [[j.x, j.y], ...e.actions.filter((a) => a.joueur === j.id && estDeplacement(a)).map((a) => fin(a.chemin))]
+    for (const ancre of ancres) {
+      const d = distance(ancre, chemin[0])
+      if (d < 1.2 && (!meilleur || d < meilleur.d)) meilleur = { joueur: j.id, ancre, d }
+    }
+  }
+  return meilleur && { joueur: meilleur.joueur, chemin: deplacerDebut(chemin, meilleur.ancre) }
+}
+
+// Une passe va à l'attaquant le plus proche de son arrivée, là où il sera en fin d'étape.
+export function receveurPasse(e: Etape, passeur: string, chemin: Point[]): { vers: string; chemin: Point[] } | null {
+  const finales = positionsFinales(e)
+  let meilleur: { vers: string; p: Point; d: number } | null = null
+  for (const j of e.joueurs) {
+    if (j.id === passeur || j.camp !== 'attaque') continue
+    const p = finales.get(j.id)!
+    const d = distance(p, fin(chemin))
+    if (d < 2.5 && (!meilleur || d < meilleur.d)) meilleur = { vers: j.id, p, d }
+  }
+  return meilleur && { vers: meilleur.vers, chemin: deplacerFin(chemin, meilleur.p) }
 }
