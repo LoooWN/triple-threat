@@ -52,3 +52,31 @@ Fichier { format: "triple-threat", version: 1, exporteLe, systemes }
 
 ## Hors périmètre phase 1
 Catégories, recherche, variantes, effectif, exercices, séances, tableau blanc, PDF (phase 2) ; mode révision (phase 3).
+
+---
+
+# Phase 2 — validée le 2026-10-19
+
+Livrée en 5 morceaux, chacun testé et mis en ligne : 2a bibliothèque + effectif, 2b exercices, 2c séances + présentation, 2d tableau blanc, 2e export image / PDF.
+
+## Décisions de Logan
+- Plusieurs équipes dans l'effectif.
+- Sur le terrain, il veut surtout les **numéros de maillot** : dans chaque système, chaque pion peut être relié à un joueur de l'équipe choisie ; le pion affiche alors son maillot (nom en petit dessous). Pas de « cinq » global.
+- Exercices : plusieurs joueurs peuvent avoir un ballon en même temps. Dans un système, un seul ballon.
+
+## Modèle (version 2 du fichier, conversion automatique de la version 1)
+- Document (système ou exercice) : `genre`, `categorie`, `equipe` (id ou null), `maillots` (id du pion → id du joueur d'équipe), `materiel` (fixe pour tout le document : plot, échelle avec `angle`, ballon au sol), `miseEnPlace`, `pointsCles`, `variantes`, `dureeConseillee` (min).
+- Étape : `ballons: string[]` remplace `ballon`. Une passe enlève le ballon au passeur (s'il en a un) et en donne un au receveur.
+- Camp `coach` (pion « C ») : peut se déplacer, passer et recevoir. Les défenseurs ne reçoivent pas de passe.
+- Équipe : `{ id, nom, joueurs: [{ id, nom, maillot }] }` (maillot en texte pour « 0 » et « 00 »).
+- Séance : `{ id, nom, date, blocs: [{ id, document, duree, note }] }`.
+- Fichier : `{ format: "triple-threat", version: 2, exporteLe, systemes, seances, equipes }`. Import : système ou séance déjà présent à l'identique → ignoré, modifié → copie (les séances importées suivent les nouveaux ids) ; équipe déjà présente → gardée telle quelle.
+- Les systèmes de la version 1 deviennent des systèmes de catégorie « Attaque ».
+
+## Écrans
+- Bibliothèque : onglets Systèmes / Exercices / Séances / Effectif ; recherche (sans tenir compte des accents) ; filtres par catégorie ; sections par catégorie ; menu d'une carte : renommer, catégorie, dupliquer en variante (« Nom – variante »), exporter, supprimer.
+- Catégories par défaut — systèmes : Attaque, Défense, Remise en jeu, Contre-attaque, Fin de match ; exercices : Échauffement, Tir, Passe, Dribble, Défense, Jeu réduit. On peut en créer.
+- Éditeur : barre réduite (retour, nom, annuler, rétablir, tableau blanc, « Plus » : miroir, terrain, équipe, exporter). Exercices : jusqu'à 15 joueurs par camp, outils Coach et Matériel, panneau « Étapes / Fiche ».
+- Séance : liste de blocs (durée ± 5 min, note, monter, descendre, retirer), total, « Présenter ». Présentation plein écran : schéma animé, fiche, minuteur par bloc, précédent / suivant, écran maintenu allumé.
+- Tableau blanc : calque par-dessus le terrain, 4 couleurs, 3 épaisseurs, « Effacer tout » ; tout disparaît en fermant.
+- Export : image PNG (étape ou système complet) et PDF (système, exercice, playbook par catégorie) avec jsPDF embarqué.
