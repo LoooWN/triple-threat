@@ -44,11 +44,11 @@ describe('miroir', () => {
 describe('placerDefense', () => {
   it('place un défenseur à 1 m de chaque attaquant vers le panier, sans doubler un défenseur existant', () => {
     const e = placerDefense(etape(), terrain)
-    const d1 = e.joueurs.find((j) => j.id === 'D1')!
-    expect(d1.camp).toBe('defense')
+    const d1 = e.joueurs.find((j) => j.camp === 'defense' && j.numero === 1)!
     expect(d1.x).toBeCloseTo(6.575)
     expect(d1.y).toBeCloseTo(7.5)
-    expect(e.joueurs.filter((j) => j.id === 'D2')).toHaveLength(1)
+    expect(e.joueurs.filter((j) => j.camp === 'defense' && j.numero === 2)).toHaveLength(1)
+    expect(new Set(e.joueurs.map((j) => j.id)).size).toBe(e.joueurs.length)
   })
 })
 
@@ -89,6 +89,11 @@ describe('attacherTrait', () => {
     expect(attacherTrait(e, [[7.8, 7.3], [6, 6], [5, 5]])).toEqual({ joueur: 'A1', chemin: [[7.575, 7.5], [5.8875, 6.1], [5, 5]] })
     expect(attacherTrait(e, [[2.1, 6.1], [2, 8], [2, 10]])?.joueur).toBe('A2')
     expect(attacherTrait(e, [[12, 12], [11, 11], [10, 10]])).toBeNull()
+  })
+  it('donne le trait au joueur sur lequel il commence, même si l’action d’un autre finit plus près', () => {
+    const e = etape()
+    e.joueurs.push({ id: 'A4', camp: 'attaque', numero: 4, x: 2.3, y: 6.3 })
+    expect(attacherTrait(e, [[2.1, 6.1], [3, 7], [4, 8]])?.joueur).toBe('A4')
   })
 })
 

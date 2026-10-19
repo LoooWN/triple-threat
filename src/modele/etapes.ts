@@ -1,5 +1,5 @@
 import { deplacerDebut, deplacerFin, distance, fin, proche } from './geometrie.ts'
-import { nouvelId, type Action, type Etape, type Point } from './types.ts'
+import { nouvelId, type Action, type Etape, type Point, type Systeme } from './types.ts'
 
 export const estDeplacement = (a: Action) => a.type !== 'passe'
 
@@ -106,16 +106,30 @@ export function propager(etapes: Etape[], i: number, avant: Etape): Etape[] {
 }
 
 // Un trait part d'un joueur, ou du bout de sa dernière coupe / dribble / écran (pour enchaîner).
+// Un trait commencé sur un joueur (rayon du pion) lui appartient toujours.
 export function attacherTrait(e: Etape, chemin: Point[]): { joueur: string; chemin: Point[] } | null {
-  let meilleur: { joueur: string; ancre: Point; d: number } | null = null
-  for (const j of e.joueurs) {
-    const ancres: Point[] = [[j.x, j.y], ...e.actions.filter((a) => a.joueur === j.id && estDeplacement(a)).map((a) => fin(a.chemin))]
-    for (const ancre of ancres) {
-      const d = distance(ancre, chemin[0])
-      if (d < 1.2 && (!meilleur || d < meilleur.d)) meilleur = { joueur: j.id, ancre, d }
-    }
+  const plusProche = (ancres: { joueur: string; ancre: Point }[], rayon: number) => {
+    const d = (x: { ancre: Point }) => distance(x.ancre, chemin[0])
+    return ancres.filter((x) => d(x) < rayon).sort((a, b) => d(a) - d(b))[0]
   }
-  return meilleur && { joueur: meilleur.joueur, chemin: deplacerDebut(chemin, meilleur.ancre) }
+  const pions = e.joueurs.map((j) => ({ joueur: j.id, ancre: [j.x, j.y] as Point }))
+  const bouts = e.actions.filter(estDeplacement).map((a) => ({ joueur: a.joueur, ancre: fin(a.chemin) }))
+  const choix = plusProche(pions, 0.6) ?? plusProche([...pions, ...bouts], 1.2)
+  return choix ? { joueur: choix.joueur, chemin: deplacerDebut(chemin, choix.ancre) } : null
+}
+
+// Change le numéro d'un joueur dans tout le système ; celui du même camp qui l'avait prend l'ancien.
+export function changerNumero(s: Systeme, id: string, numero: number): Systeme {
+  const j = s.etapes.flatMap((e) => e.joueurs).find((x) => x.id === id)
+  if (!j || j.numero === numero) return s
+  return {
+    ...s,
+    etapes: s.etapes.map((e) => ({
+      ...e,
+      joueurs: e.joueurs.map((x) =>
+        x.id === id ? { ...x, numero } : x.camp === j.camp && x.numero === numero ? { ...x, numero: j.numero } : x),
+    })),
+  }
 }
 
 // Une passe va à l'attaquant le plus proche de son arrivée, là où il sera en fin d'étape.

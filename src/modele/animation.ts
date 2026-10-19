@@ -1,21 +1,48 @@
 import { estDeplacement } from './etapes.ts'
-import { pointA, polyligne } from './geometrie.ts'
+import { fin, pointA, polyligne } from './geometrie.ts'
 import type { Etape, Point } from './types.ts'
 
-// Dans une étape, les déplacements se jouent ensemble, puis les passes partent une par une.
-export const PART_DEPLACEMENTS = 0.65
+// Tout part en même temps. Un joueur enchaîne seulement ses propres actions (dans l'ordre du tracé),
+// et ne passe ou ne dribble qu'une fois qu'il a le ballon. Renvoie le « temps » de départ de chaque action.
+export function temps(e: Etape): Map<string, number> {
+  const libre = new Map<string, number>()
+  const aLeBallon = new Map<string, number>(e.ballon ? [[e.ballon, 0]] : [])
+  const depart = new Map<string, number>()
+  for (const a of e.actions) {
+    let k = libre.get(a.joueur) ?? 0
+    if (a.type === 'passe' || a.type === 'dribble') k = Math.max(k, aLeBallon.get(a.joueur) ?? 0)
+    depart.set(a.id, k)
+    libre.set(a.joueur, k + 1)
+    if (a.type === 'passe' && a.vers) aLeBallon.set(a.vers, k + 1)
+  }
+  return depart
+}
+
+export const nombreTemps = (e: Etape) => Math.max(1, ...[...temps(e).values()].map((k) => k + 1))
 
 export function etatAnime(e: Etape, t: number): { positions: Map<string, Point>; ballon: Point | null } {
-  const passes = e.actions.filter((a) => a.type === 'passe' && a.vers)
-  const td = passes.length ? Math.min(1, t / PART_DEPLACEMENTS) : t
+  const depart = temps(e)
+  const u = Math.min(1, Math.max(0, t)) * nombreTemps(e) // avancement en « temps »
   const positions = new Map<string, Point>()
   for (const j of e.joueurs) {
-    const trajet: Point[] = [[j.x, j.y]]
-    for (const a of e.actions) if (a.joueur === j.id && estDeplacement(a)) trajet.push(...polyligne(a.chemin))
-    positions.set(j.id, trajet.length > 1 ? pointA(trajet, td) : trajet[0])
+    let p: Point = [j.x, j.y]
+    for (const a of e.actions) {
+      if (a.joueur !== j.id || !estDeplacement(a)) continue
+      const k = depart.get(a.id)!
+      if (u >= k + 1) p = fin(a.chemin)
+      else {
+        if (u > k) p = pointA(polyligne(a.chemin), u - k)
+        break
+      }
+    }
+    positions.set(j.id, p)
   }
-  if (!passes.length || t <= PART_DEPLACEMENTS) return { positions, ballon: (e.ballon && positions.get(e.ballon)) || null }
-  const f = ((Math.min(1, t) - PART_DEPLACEMENTS) / (1 - PART_DEPLACEMENTS)) * passes.length
-  const k = Math.min(passes.length - 1, Math.floor(f))
-  return { positions, ballon: pointA(polyligne(passes[k].chemin), f - k) }
+  let porteur = e.ballon
+  for (const a of e.actions) {
+    if (a.type !== 'passe' || !a.vers) continue
+    const k = depart.get(a.id)!
+    if (u >= k + 1) porteur = a.vers
+    else if (u > k) return { positions, ballon: pointA(polyligne(a.chemin), u - k) }
+  }
+  return { positions, ballon: (porteur && positions.get(porteur)) || null }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ballonFinal, changerChemin, deplacerJoueur, etapeSuivante, positionsFinales, propager, retirerJoueur } from './etapes.ts'
+import { ballonFinal, changerChemin, changerNumero, deplacerJoueur, etapeSuivante, positionsFinales, propager, retirerJoueur } from './etapes.ts'
 import type { Action, Etape, Joueur, Point, TypeAction } from './types.ts'
 
 const j = (id: string, x: number, y: number): Joueur =>
@@ -84,6 +84,19 @@ describe('changerChemin', () => {
     expect(c.actions[2].chemin.at(-1)).toEqual([4, 5])
     const d = changerChemin(e, e.actions[1].id, [[3, 3], [3.5, 4], [6, 6]])
     expect(d.actions[2].chemin.at(-1)).toEqual([6, 6])
+  })
+})
+
+describe('changerNumero', () => {
+  it('change le numéro dans toutes les étapes et le donne en échange à celui qui l’avait (même camp)', () => {
+    const e1 = etape([j('A1', 9, 7.5), j('A2', 5, 2), j('D2', 5, 3)])
+    const s = { id: 's', nom: 'x', creeLe: '', modifieLe: '', terrain: { vue: 'demi' as const, longueur: 28, largeur: 15, ligne3pts: 6.75 }, etapes: [e1, etapeSuivante(e1)] }
+    const r = changerNumero(s, 'A2', 1)
+    for (const e of r.etapes) {
+      expect(e.joueurs.find((p) => p.id === 'A2')!.numero).toBe(1)
+      expect(e.joueurs.find((p) => p.id === 'A1')!.numero).toBe(2)
+      expect(e.joueurs.find((p) => p.id === 'D2')!.numero).toBe(2)
+    }
   })
 })
 

@@ -38,15 +38,15 @@ Fichier { format: "triple-threat", version: 1, exporteLe, systemes }
 - Étape suivante : chaque joueur va au bout de sa dernière action de déplacement (coupe, dribble, écran), sinon reste. Ballon : receveur de la dernière passe, sinon le porteur.
 - Modifier une étape : les étapes suivantes se mettent à jour pour les joueurs placés automatiquement (position = ancienne arrivée) ; ceux déplacés à la main restent.
 - Passe : accrochée au joueur le plus proche de son arrivée (position de fin d'étape).
-- Un trait doit partir d'un joueur (ou du bout de sa dernière action), sinon il est ignoré avec un message.
-- Animation d'une étape : déplacements simultanés, puis les passes.
+- Un trait doit partir d'un joueur (ou du bout de sa dernière action), sinon il est ignoré avec un message. Un trait commencé sur un pion (0,6 m) lui appartient toujours.
+- Animation d'une étape (révisé le 2026-10-19 après essai sur iPad) : tout part en même temps ; un joueur enchaîne seulement ses propres actions ; une passe ou un dribble attend que le joueur ait le ballon. Durée : 1,8 s par « temps ».
 - +5 défenseurs : chacun à 1 m de son attaquant vers le panier, notés X1..X5.
 - Pencil : dessine toujours. Doigt : interrupteur Placer / Dessiner.
 
 ## Écrans phase 1
 - « Mes systèmes » : créer (nom + terrain), ouvrir, renommer, supprimer, exporter un système, tout sauvegarder, importer.
 - Éditeur : barre (retour, nom, annuler, rétablir, miroir), outils à gauche (Placer, Dessiner, Défenseur, +5 déf., Texte), terrain, panneau Étapes (pastilles, +, description, dupliquer, supprimer, ◀ Lire ▶, vitesse). En terrain entier le panneau passe sous le terrain.
-- Gestes en mode Placer : toucher vide = joueur suivant (1→5) ; toucher joueur = ballon ; glisser joueur = déplacer ; toucher action = poignées ; appui long action = type / couleur / supprimer ; appui long joueur ou texte = menu.
+- Gestes en mode Placer : toucher vide = joueur suivant (1→5) ; toucher joueur = menu (numéro 1 à 5 échangé dans tout le système, donner / enlever le ballon, retirer) ; glisser joueur = déplacer ; toucher action = poignées ; appui long action = type / couleur / supprimer ; appui long texte = menu.
 - Relâcher un trait = 4 gros boutons Coupe / Passe / Dribble / Écran.
 - Annuler / rétablir : jusqu'à 100 pas. Sauvegarde automatique.
 

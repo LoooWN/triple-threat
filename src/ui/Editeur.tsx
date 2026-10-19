@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type JSX, type PointerEvent as PE } from 'react'
-import { etatAnime } from '../modele/animation.ts'
+import { etatAnime, nombreTemps } from '../modele/animation.ts'
 import { placerDefense } from '../modele/defense.ts'
-import { attacherTrait, changerChemin, deplacerJoueur, etapeSuivante, propager, receveurPasse, retirerJoueur } from '../modele/etapes.ts'
+import { attacherTrait, changerChemin, changerNumero, deplacerJoueur, etapeSuivante, propager, receveurPasse, retirerJoueur } from '../modele/etapes.ts'
 import { polyligne } from '../modele/geometrie.ts'
 import { lisserTrace } from '../modele/lissage.ts'
 import { miroirEtape, miroirSysteme } from '../modele/miroir.ts'
@@ -22,7 +22,7 @@ const ENCRE = '#1b2430'
 const ROUGE = '#b8322a'
 const COULEURS = [ENCRE, ROUGE, '#1f5fa8', '#2e7d4f', '#7a3fa0']
 const TYPES: [TypeAction, string][] = [['coupe', 'Coupe'], ['passe', 'Passe'], ['dribble', 'Dribble'], ['ecran', 'Écran']]
-const DUREE_ETAPE = 2600 // ms à vitesse ×1
+const DUREE_TEMPS = 1800 // ms par « temps » d'une étape, à vitesse ×1
 
 function lireCible(el: EventTarget): Cible | null {
   const c = (el as Element).closest?.('[data-poignee],[data-joueur],[data-texte],[data-action]') as SVGElement | null
@@ -159,7 +159,7 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
       }
       return modifierEtape(fin)
     }
-    toucher(g.cible, g.debut, g.dessin)
+    toucher(g.cible, g.debut, g.dessin, e.clientX, e.clientY)
   }
 
   const surCancel = () => {
@@ -169,12 +169,9 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
     setTrait(null)
   }
 
-  const toucher = (c: Cible | null, p: Point, dessin: boolean) => {
-    if (c?.type === 'joueur') {
-      const j = etape.joueurs.find((x) => x.id === c.id)!
-      if (j.camp === 'attaque') modifierEtape({ ...etape, ballon: etape.ballon === j.id ? null : j.id })
-      return
-    }
+  const toucher = (c: Cible | null, p: Point, dessin: boolean, x: number, y: number) => {
+    // Un joueur touché ouvre ses options : un toucher par erreur ne change plus le ballon.
+    if (c?.type === 'joueur') return setMenu({ cible: c, x, y })
     if (c?.type === 'action') return setSelection(c.id === selection ? null : c.id)
     if (c?.type === 'texte') return editerTexte(c.id)
     if (c?.type === 'poignee') return
@@ -192,7 +189,7 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
     const pris = etape.joueurs.filter((j) => j.camp === camp).map((j) => j.numero)
     const numero = [1, 2, 3, 4, 5].find((n) => !pris.includes(n))
     if (!numero) return montrer(camp === 'attaque' ? 'Les 5 attaquants sont déjà sur le terrain.' : 'Les 5 défenseurs sont déjà sur le terrain.')
-    modifierEtape({ ...etape, joueurs: [...etape.joueurs, { id: `${camp === 'attaque' ? 'A' : 'D'}${numero}`, camp, numero, x, y }] })
+    modifierEtape({ ...etape, joueurs: [...etape.joueurs, { id: nouvelId(camp === 'attaque' ? 'A' : 'D'), camp, numero, x, y }] })
   }
 
   const editerTexte = (id: string) => {
@@ -264,7 +261,7 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
   useEffect(() => {
     if (!lecture) return
     const e = s.etapes[i]
-    const duree = (e.actions.length ? DUREE_ETAPE : 700) / vitesse
+    const duree = (e.actions.length ? DUREE_TEMPS * nombreTemps(e) : 700) / vitesse
     const t0 = performance.now()
     let raf = 0
     const image = (now: number) => {
@@ -333,10 +330,21 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
     if (c.type === 'joueur') {
       const j = etape.joueurs.find((x) => x.id === c.id)
       if (!j) return null
+      const ballon = etape.ballon === j.id
       return (
         <>
+          <div className="rangee numeros" role="group" aria-label="Numéro">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} className="numero" aria-pressed={j.numero === n}
+                onClick={() => { modifierSysteme((sys) => changerNumero(sys, j.id, n)); setMenu(null) }}>
+                {j.camp === 'defense' ? `X${n}` : n}
+              </button>
+            ))}
+          </div>
           {j.camp === 'attaque' && (
-            <button className="bouton large" onClick={() => { modifierEtape({ ...etape, ballon: j.id }); setMenu(null) }}>Donner le ballon</button>
+            <button className="bouton large" onClick={() => { modifierEtape({ ...etape, ballon: ballon ? null : j.id }); setMenu(null) }}>
+              {ballon ? 'Enlever le ballon' : 'Donner le ballon'}
+            </button>
           )}
           <button className="bouton large danger" onClick={() => { modifierEtape(retirerJoueur(etape, j.id)); setMenu(null) }}>
             <Icone.corbeille />Retirer le joueur
@@ -391,7 +399,7 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
 
       <div className="zone-terrain">
         <p className="aide">{{
-          placer: 'Touche le terrain : joueur suivant. Touche un joueur : ballon. Glisse : déplacer.',
+          placer: 'Touche le terrain : joueur suivant. Touche un joueur : numéro, ballon. Glisse : déplacer.',
           dessiner: 'Trace une action en partant d’un joueur.',
           defense: 'Touche le terrain pour poser X1 à X5.',
           texte: 'Touche le terrain pour écrire.',

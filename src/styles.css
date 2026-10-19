@@ -196,6 +196,12 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .rangee { display: flex; gap: 6px; }
 .rangee .type { flex: 1; min-width: 0; }
 .couleurs { justify-content: space-between; padding: 4px 2px; }
+.numeros { justify-content: space-between; padding: 2px 0 6px; }
+.numero {
+  width: 54px; height: 54px; border: 2px solid var(--nuit-4); border-radius: 50%; background: none;
+  font: 800 19px var(--titre);
+}
+.numero[aria-pressed="true"] { background: var(--erable); border-color: var(--erable); color: var(--nuit); }
 .couleur { width: 46px; height: 46px; border: 3px solid var(--nuit-2); border-radius: 50%; box-shadow: 0 0 0 2px var(--nuit-4); }
 .couleur[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--erable); }
 

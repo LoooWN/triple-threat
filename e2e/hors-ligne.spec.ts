@@ -32,7 +32,9 @@ async function tracer(page: Page, pts: [number, number][]) {
   await page.mouse.up()
 }
 
-const position = (page: Page, id: string) => page.locator(`[data-joueur="${id}"]`).getAttribute('transform')
+// Position à l'écran de l'attaquant qui porte ce numéro.
+const position = (page: Page, numero: string) =>
+  page.locator('.joueur.attaque').filter({ hasText: new RegExp(`^${numero}$`) }).getAttribute('transform')
 
 test('s’ouvre en mode avion après la première visite, sans rien charger d’internet', async ({ page }) => {
   const externes: string[] = []
@@ -55,6 +57,7 @@ test('crée un système complet en mode avion, le retrouve, l’exporte et le r�
   for (const [x, y] of [[9, 7.5], [5.5, 1.8], [5.5, 13.2], [5.8, 5.05], [5.8, 9.95]] as const) await toucher(page, x, y)
   await expect(page.locator('.joueur.attaque')).toHaveCount(5)
   await toucher(page, 9, 7.5)
+  await page.getByRole('button', { name: 'Donner le ballon' }).click()
   await expect(page.locator('.ballon')).toHaveCount(1)
 
   await page.getByRole('button', { name: 'Dessiner' }).click()
@@ -70,12 +73,31 @@ test('crée un système complet en mode avion, le retrouve, l’exporte et le r�
 
   await page.getByRole('button', { name: 'Ajouter l’étape suivante' }).click()
   await expect(page.locator('.action')).toHaveCount(0)
-  // A2 est au bout de sa coupe (x 2,5 ; y 3,5) → dessin à l'écran (y + 1,2 ; x + 1,2), et il a le ballon.
-  const [sx, sy] = (await position(page, 'A2'))!.match(/-?[\d.]+/g)!.map(Number)
+  // Le 2 est au bout de sa coupe (x 2,5 ; y 3,5) → dessin à l'écran (y + 1,2 ; x + 1,2), et il a le ballon.
+  const [sx, sy] = (await position(page, '2'))!.match(/-?[\d.]+/g)!.map(Number)
   expect(Math.abs(sx - 4.7)).toBeLessThan(0.1)
   expect(Math.abs(sy - 3.7)).toBeLessThan(0.1)
-  const ballon = (await page.locator('.ballon').getAttribute('transform'))!.match(/-?[\d.]+/g)!.map(Number)
-  expect(Math.abs(ballon[0] - 0.36 - sx)).toBeLessThan(0.1)
+  const ballon = async () => (await page.locator('.ballon').getAttribute('transform'))!.match(/-?[\d.]+/g)!.map(Number)
+  expect(Math.abs((await ballon())[0] - 0.36 - sx)).toBeLessThan(0.1)
+
+  // Toucher un autre joueur par erreur ouvre ses options sans lui donner le ballon.
+  await page.getByRole('button', { name: 'Placer' }).click()
+  await toucher(page, 9, 7.5)
+  await expect(page.getByRole('button', { name: 'Donner le ballon' })).toBeVisible()
+  await page.mouse.click(5, 5)
+  expect(Math.abs((await ballon())[0] - 0.36 - sx)).toBeLessThan(0.1)
+
+  // Changer le numéro du 2 en 4 : l'ancien 4 (au coude, x 5,8 ; y 5,05) devient 2, dans toutes les étapes.
+  const proche = async (numero: string, x: number, y: number) => {
+    const [a, b] = (await position(page, numero))!.match(/-?[\d.]+/g)!.map(Number)
+    return Math.abs(a - x) < 0.1 && Math.abs(b - y) < 0.1
+  }
+  await toucher(page, 2.5, 3.5)
+  await page.getByRole('group', { name: 'Numéro' }).getByRole('button', { name: '4' }).click()
+  expect(await proche('4', sx, sy)).toBe(true)
+  await page.getByRole('tab', { name: '1' }).click()
+  expect(await proche('2', 5.05 + 1.2, 5.8 + 1.2)).toBe(true)
+  await page.getByRole('tab', { name: '2' }).click()
 
   // Rechargement toujours hors ligne : le système est là.
   await page.getByRole('button', { name: 'Mes systèmes' }).click()
