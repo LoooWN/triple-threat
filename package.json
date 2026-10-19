@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "e2e": "playwright test",
-    "icones": "node scripts/icones.mjs"
+    "icones": "node scripts/icones.mjs",
+    "deployer": "npm run build && node scripts/deployer.mjs"
   },
   "dependencies": {
     "idb-keyval": "^6.3.0",
