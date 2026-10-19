@@ -391,7 +391,7 @@ export function Editeur({ initial, onChange, onFermer }: Props) {
 
       <div className="zone-terrain">
         <p className="aide">{{
-          placer: 'Touche le terrain pour poser 1 à 5, un joueur pour lui donner le ballon. Glisse pour déplacer.',
+          placer: 'Touche le terrain : joueur suivant. Touche un joueur : ballon. Glisse : déplacer.',
           dessiner: 'Trace une action en partant d’un joueur.',
           defense: 'Touche le terrain pour poser X1 à X5.',
           texte: 'Touche le terrain pour écrire.',

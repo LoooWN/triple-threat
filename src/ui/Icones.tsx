@@ -26,7 +26,7 @@ export const Icone = {
   corbeille: () => <I d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />,
   partager: () => <I d="M12 15V3M7 8l5-5 5 5M5 12v8h14v-8" />,
   importer: () => <I d="M12 3v12M7 10l5 5 5-5M5 15v5h14v-5" />,
-  plusDe: () => <I d="M5 12h.01M12 12h.01M19 12h.01" />,
+  plusDe: () => <I d="M7 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM21 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" plein />,
 }
 
 // Aperçu du style de trait de chaque type d'action.

@@ -34,7 +34,7 @@ function suivrePasses(avant: Etape, apres: Etape): Etape {
     ...apres,
     actions: apres.actions.map((a) => {
       const [pa, pn] = [a.vers && fa.get(a.vers), a.vers && fn.get(a.vers)]
-      if (a.type !== 'passe' || !pa || !pn || proche(pa, pn) || !proche(fin(a.chemin), pa)) return a
+      if (a.type !== 'passe' || !pa || !pn || proche(pa, pn)) return a
       return { ...a, chemin: deplacerFin(a.chemin, pn) }
     }),
   }
