@@ -108,3 +108,20 @@ Les joueurs regardent et révisent **sur leur téléphone**, sans le coach. Livr
 
 ## Téléphone
 - Révision et grand format s'adaptent au téléphone (vertical : terrain en haut, question dessous ; horizontal : côte à côte). Le message « Tourne l'iPad » ne concerne plus que l'éditeur et la présentation de séance.
+
+---
+
+# Lot 4 — demandé le 2026-10-19
+
+## 4a Statistiques de match (« Je veux noter les statistiques rapidement »)
+- Onglet **Matchs** : créer un match (équipe de l'effectif, adversaire, date), choisir les présents.
+- En direct : toucher un joueur (grille des maillots), puis une statistique — 2 pts / 3 pts / LF réussis ou ratés, rebond offensif / défensif, passe décisive, interception, contre, perte de balle, faute. Le joueur reste sélectionné pour enchaîner.
+- Score : nos points calculés, points adverses avec +1 / +2 / +3. Quart-temps Q1–Q4 et prolongation. Annuler la dernière action, journal des actions.
+- Fautes : alerte à 4, joueur marqué « 5 fautes ».
+- Après : feuille de match (tableau par joueur) ; dans l'Effectif, moyennes de saison par joueur.
+- Modèle : `Match { id, equipe, adversaire, date, presents: string[], evenements: { id, joueur, stat, quart }[], pointsAdverses: { quart, points }[], creeLe, modifieLe }`. Inclus dans « Tout sauvegarder » (clé `matchs`, facultative), jamais dans les liens de révision.
+
+## 4b Contenus tout faits
+- Sources demandées par Logan : FIBA « Commencer à entraîner – Plans d'entraînement » (10 plans), bibliothèque publique Drills&Plays (les plus populaires par catégorie), fiches SportEasy basket ; plus les 24 systèmes MIT de 3d-hoops-playbook.
+- Chaque exercice ou système est redessiné dans le format Triple Threat et décrit avec nos mots, avec la mention de sa source dans la fiche. Les plans FIBA deviennent des séances.
+- Ajout par un bouton « Ajouter des contenus tout faits » (choix des paquets) ; réimporter ne crée pas de doublons.
