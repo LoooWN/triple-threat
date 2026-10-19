@@ -106,6 +106,7 @@ function BlocPresente({ bloc, doc, equipes, rang, total, precedent, suivant, onF
         {bloc.note && <p className="note-bloc">{bloc.note}</p>}
       </aside>
 
+      <div className="tourner" aria-hidden="true">Tourne l’iPad en paysage</div>
       <footer className="navigation">
         <button className="bouton" disabled={rang === 0} onClick={precedent}><Icone.precedent />Précédent</button>
         <button className="bouton principal" disabled={rang === total - 1} onClick={suivant}>Suivant<Icone.suivant /></button>

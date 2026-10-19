@@ -31,7 +31,7 @@ const etape = (e: unknown) =>
 const terrain = (t: unknown) =>
   objet(t) && parmi(t.vue, ['demi', 'entier']) && nombre(t.longueur) && nombre(t.largeur) && (t.ligne3pts === null || nombre(t.ligne3pts))
 const materiel = (m: unknown) => objet(m) && texte(m.id) && parmi(m.type, ['plot', 'echelle', 'ballon']) && nombre(m.x) && nombre(m.y) && nombre(m.angle)
-const systeme = (s: unknown) =>
+export const validerSysteme = (s: unknown) =>
   objet(s) && texte(s.id) && texte(s.nom) && parmi(s.genre, ['systeme', 'exercice']) && texte(s.categorie) &&
   texte(s.creeLe) && texte(s.modifieLe) && terrain(s.terrain) && liste(s.etapes, etape) && (s.etapes as unknown[]).length > 0 &&
   (s.equipe === null || texte(s.equipe)) && objet(s.maillots) && Object.values(s.maillots).every(texte) &&
@@ -76,7 +76,7 @@ export function importer(contenu: string, existants: Contenu): Contenu & { dejaP
   if (!Array.isArray(brut) || !brut.every((s) => objet(s) && Array.isArray(s.etapes) && s.etapes.every(objet))) throw new Error(ABIME)
   const systemes = brut.map(normaliser)
   const [seances, equipes] = [data.seances ?? [], data.equipes ?? []]
-  if (!systemes.every(systeme) || !liste(seances, seance) || !liste(equipes, equipe)) throw new Error(ABIME)
+  if (!systemes.every(validerSysteme) || !liste(seances, seance) || !liste(equipes, equipe)) throw new Error(ABIME)
 
   const docs = fusionner(systemes, existants.systemes)
   const ses = fusionner(seances as Seance[], existants.seances)

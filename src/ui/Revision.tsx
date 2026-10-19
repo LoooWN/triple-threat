@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as PE } from 'react'
-import type { Ecran } from '../App.tsx'
+import type { Donnees, Ecran } from '../App.tsx'
 import { aRetravailler, campActif, dernierResultat, postes, questionsPour, TOLERANCE, verifier, type Question } from '../modele/revision.ts'
 import { nouvelId, type Etape, type Point, type Resultat, type Systeme, type TypeAction } from '../modele/types.ts'
 import { Icone } from './Icones.tsx'
 import { TerrainSvg } from './Terrain.tsx'
-import { maintenant } from './texte.ts'
+import { dateLongue, maintenant, pluriel } from './texte.ts'
 import { useLecture } from './useLecture.tsx'
 import { borner, depuisEcran, versEcran } from './vue.ts'
 
@@ -28,9 +28,9 @@ function resume(doc: Systeme, q: Question) {
 
 // ---------- Accueil : scores et systèmes à retravailler ----------
 
-interface AccueilProps { documents: Systeme[]; resultats: Resultat[]; ouvrir(e: Ecran): void }
+interface AccueilProps { documents: Systeme[]; resultats: Resultat[]; paquets: Donnees['paquets']; ouvrir(e: Ecran): void }
 
-export function RevisionAccueil({ documents, resultats, ouvrir }: AccueilProps) {
+export function RevisionAccueil({ documents, resultats, paquets, ouvrir }: AccueilProps) {
   const lignes = documents
     .filter((d) => questionsPour(d, null).length)
     .map((d) => ({ d, r: dernierResultat(resultats, d.id) }))
@@ -60,6 +60,24 @@ export function RevisionAccueil({ documents, resultats, ouvrir }: AccueilProps) 
       {!lignes.length && <p className="vide">Rien à réviser pour l’instant : il faut des systèmes avec des actions.</p>}
       {liste('À retravailler', aRevoir)}
       {liste('Bien su', sus)}
+      {(paquets.elements ?? []).length > 0 && (
+        <section>
+          <h2 className="titre-section">Reçus du coach</h2>
+          <ul className="liste-revision">
+            {paquets.elements!.map((p) => (
+              <li key={p.id}>
+                <div>
+                  <strong>{p.titre}</strong>
+                  <span>{pluriel(p.systemes.length, 'système')}, reçu le {dateLongue(p.creeLe.slice(0, 10))}</span>
+                </div>
+                <button className="bouton danger" onClick={() => confirm(`Retirer « ${p.titre} » de ce téléphone ?`) && paquets.retirer(p.id)}>
+                  <Icone.corbeille />Retirer
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   )
 }

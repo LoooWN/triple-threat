@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { decoderPaquet, PREFIXE } from './modele/lien.ts'
 import { demanderPersistance, enregistrer, lister, supprimer, type Collection, type Elements } from './stockage.ts'
 import { Bibliotheque, type Onglet } from './ui/Bibliotheque.tsx'
 import { Editeur } from './ui/Editeur.tsx'
@@ -53,6 +54,29 @@ export default function App() {
     demanderPersistance()
   }, [])
 
+  // Lien de révision : les systèmes arrivent dans l'adresse (#revision=…). On les garde puis on nettoie l'adresse.
+  const paquets = donnees.paquets
+  useEffect(() => {
+    if (!paquets.elements) return
+    const recevoir = async () => {
+      if (!location.hash.startsWith(PREFIXE)) return
+      const code = location.hash.slice(PREFIXE.length)
+      history.replaceState(null, '', location.pathname + location.search)
+      try {
+        const p = await decoderPaquet(code)
+        const meme = paquets.elements?.find((x) => x.titre === p.titre) // le coach renvoie une mise à jour : on remplace
+        paquets.garder(meme ? { ...p, id: meme.id } : p)
+        setOnglet('revision')
+        setEcran({ quoi: 'bibliotheque' })
+      } catch (e) {
+        alert((e as Error).message)
+      }
+    }
+    recevoir()
+    addEventListener('hashchange', recevoir)
+    return () => removeEventListener('hashchange', recevoir)
+  }, [paquets])
+
   const [documents, equipes] = [donnees.systemes.elements ?? [], donnees.equipes.elements ?? []]
   // Révisables : la bibliothèque de l'appareil, puis les systèmes reçus par lien.
   const revisables = [...documents, ...(donnees.paquets.elements ?? []).flatMap((p) => p.systemes)]
@@ -81,7 +105,6 @@ export default function App() {
         <Bibliotheque donnees={donnees} revisables={revisables} onglet={onglet} setOnglet={setOnglet} ouvrir={setEcran} />
       )}
       <MiseAJour />
-      <div className="tourner" aria-hidden="true">Tourne l’iPad en paysage</div>
     </>
   )
 }

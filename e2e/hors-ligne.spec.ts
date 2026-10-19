@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { devices, expect, test, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 
 // Première visite en ligne (installation), puis tout le reste en mode avion.
@@ -481,4 +481,54 @@ test('présentation grand format : toucher à droite pour avancer, à gauche pou
   await expect(page.getByText('Étape 1 / 2')).toBeVisible()
   await page.getByRole('button', { name: 'Fermer' }).click()
   await expect(page.getByRole('tab', { name: 'Systèmes' })).toBeVisible()
+})
+
+test('lien de révision : le coach envoie, le joueur révise sur son téléphone', async ({ page, browser }) => {
+  page.on('dialog', (d) => d.accept())
+  await passerEnModeAvion(page)
+  await page.getByRole('button', { name: 'Nouveau système' }).click()
+  await page.getByPlaceholder('Ex. : Corne, sortie de 1').fill('Sortie du 2')
+  await page.getByRole('button', { name: 'Créer' }).click()
+  for (const [x, y] of [[9, 7.5], [5.5, 1.8]] as const) await toucher(page, x, y)
+  await page.getByRole('button', { name: 'Dessiner' }).click()
+  await tracer(page, [[5.5, 1.8], [4, 2.5], [2.5, 3.5]])
+  await page.getByRole('button', { name: 'Coupe' }).click()
+  await page.getByRole('button', { name: 'Ajouter l’étape suivante' }).click()
+  await page.getByRole('button', { name: 'Bibliothèque' }).click()
+  await page.getByRole('button', { name: 'Options de Sortie du 2' }).click()
+  await page.getByRole('button', { name: 'Lien de révision pour les joueurs' }).click()
+  const url = await page.getByLabel('Lien', { exact: true }).inputValue()
+  expect(url).toContain('/triple-threat/#revision=')
+
+  // Le téléphone d'une joueuse, qui n'a jamais ouvert l'appli.
+  const telephone = await browser.newContext({ ...devices['iPhone 13'] })
+  const tel = await telephone.newPage()
+  const alertes: string[] = []
+  tel.on('dialog', (d) => { alertes.push(d.message()); d.accept() })
+  await tel.goto(url)
+  await expect(tel.getByRole('heading', { name: 'À retravailler' })).toBeVisible()
+  await expect(tel.getByText('Sortie du 2', { exact: true })).toHaveCount(2) // le système et le paquet reçu
+  await expect(tel.getByRole('tab', { name: 'Systèmes' })).toHaveCount(0) // pas d'onglets coach
+  expect(tel.url()).not.toContain('#revision')
+
+  await tel.getByRole('button', { name: 'Réviser' }).click()
+  await tel.getByRole('button', { name: '2', exact: true }).click()
+  await tel.getByRole('button', { name: 'Coupe' }).click()
+  await tel.getByRole('button', { name: 'Question suivante' }).click()
+  await toucher(tel, 2.5, 3.5)
+  await tel.getByRole('button', { name: 'Valider' }).click()
+  await tel.getByRole('button', { name: 'Question suivante' }).click()
+  await tel.getByRole('button', { name: 'Ne bouge pas' }).click()
+  await tel.getByRole('button', { name: 'Voir le score' }).click()
+  await expect(tel.locator('.score')).toHaveText('3 / 3')
+  await tel.getByRole('button', { name: 'Terminer' }).click()
+  await expect(tel.getByText('dernier score 3 / 3')).toBeVisible()
+
+  // Un lien coupé par une messagerie est refusé ; le même lien rouvert ne crée pas de doublon.
+  await tel.goto(url.slice(0, -60))
+  await expect.poll(() => alertes.join(' ')).toContain('incomplet ou abîmé')
+  await tel.goto(url)
+  await expect(tel.getByRole('heading', { name: 'Reçus du coach' })).toBeVisible()
+  await expect(tel.locator('.liste-revision').last().locator('li')).toHaveCount(1)
+  await telephone.close()
 })

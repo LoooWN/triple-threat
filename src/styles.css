@@ -439,3 +439,9 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
   .barre-grand { flex-wrap: wrap; justify-content: space-between; }
   .barre-grand strong { order: 3; flex-basis: 100%; }
 }
+.lien { width: 100%; min-height: 44px; padding: 0 10px; border: 0; border-radius: 10px; background: var(--nuit); color: var(--craie-2); font-size: 14px; }
+@media (max-width: 500px) {
+  .liste-revision li { flex-wrap: wrap; }
+  .liste-revision li > div { flex-basis: 100%; }
+  .liste-revision li .bouton { flex: 1; }
+}

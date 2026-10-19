@@ -14,6 +14,7 @@ import { ChoixCategorie, ReglageTerrain } from './ReglageTerrain.tsx'
 import { TerrainSvg } from './Terrain.tsx'
 import { maintenant, nomFichier, pluriel } from './texte.ts'
 import { useExport } from './useExport.tsx'
+import { useLien } from './useLien.tsx'
 
 export type Onglet = Genre | 'seances' | 'effectif' | 'revision'
 const ONGLETS: [Onglet, string][] = [['systeme', 'Systèmes'], ['exercice', 'Exercices'], ['seances', 'Séances'], ['effectif', 'Effectif'], ['revision', 'Révision']]
@@ -53,6 +54,18 @@ export function Bibliotheque({ donnees, revisables, onglet, setOnglet, ouvrir }:
     partagerFichier(`triple-threat-sauvegarde-${maintenant().slice(0, 10)}.json`, exporter(tout))
   }
 
+  const joueur = systemes.elements && !systemes.elements.length && (donnees.paquets.elements ?? []).length > 0
+  if (joueur) return (
+    <main className="bibliotheque">
+      <header className="entete">
+        <h1><img src={`${import.meta.env.BASE_URL}icone.svg`} alt="" />Triple Threat</h1>
+      </header>
+      <RevisionAccueil documents={revisables} resultats={donnees.resultats.elements ?? []} paquets={donnees.paquets} ouvrir={ouvrir} />
+      <p className="conseil">Tes scores restent sur ce téléphone. Si un système disparaît, rouvre le lien envoyé par le coach.</p>
+      <Message texte={message} />
+    </main>
+  )
+
   return (
     <main className="bibliotheque">
       <header className="entete">
@@ -75,7 +88,7 @@ export function Bibliotheque({ donnees, revisables, onglet, setOnglet, ouvrir }:
       )}
       {onglet === 'seances' && <ListeSeances seances={seances} documents={tout.systemes} ouvrir={ouvrir} />}
       {onglet === 'effectif' && <Effectif equipes={equipes} />}
-      {onglet === 'revision' && <RevisionAccueil documents={revisables} resultats={donnees.resultats.elements ?? []} ouvrir={ouvrir} />}
+      {onglet === 'revision' && <RevisionAccueil documents={revisables} resultats={donnees.resultats.elements ?? []} paquets={donnees.paquets} ouvrir={ouvrir} />}
 
       <p className="conseil">
         Tout reste sur cet iPad. Safari peut effacer les données d’une appli peu utilisée :
@@ -102,6 +115,7 @@ interface ListeProps {
 
 function ListeDocuments({ genre, systemes, seances, equipes, ouvrir, montrer }: ListeProps) {
   const exp = useExport()
+  const lien = useLien(montrer)
   const [recherche, setRecherche] = useState('')
   const [filtre, setFiltre] = useState<string | null>(null)
   const [creation, setCreation] = useState(false)
@@ -127,6 +141,10 @@ function ListeDocuments({ genre, systemes, seances, equipes, ouvrir, montrer }: 
           const titre = filtre ?? (recherche.trim() ? `Recherche « ${recherche.trim()} »` : genre === 'systeme' ? 'Tous les systèmes' : 'Tous les exercices')
           exp.lancer(`playbook-${nomFichier(titre)}.pdf`, () => pdfDocuments(trouves, equipes, titre))
         }}><Icone.pdf />Playbook PDF</button>
+        <button className="bouton" disabled={!trouves.length} onClick={() => {
+          const titre = filtre ?? (recherche.trim() ? recherche.trim() : genre === 'systeme' ? 'Systèmes' : 'Exercices')
+          lien.preparer(titre, trouves)
+        }}><Icone.partager />Lien de révision</button>
         <button className="bouton principal" onClick={() => setCreation(true)}><Icone.plus />{mots.nouveau}</button>
       </div>
       {tous.length > 0 && (
@@ -194,6 +212,11 @@ function ListeDocuments({ genre, systemes, seances, equipes, ouvrir, montrer }: 
             <button className="bouton large" onClick={() => {
               const d = menuDe
               setMenuDe(null)
+              lien.preparer(d.nom, [d])
+            }}><Icone.partager />Lien de révision pour les joueurs</button>
+            <button className="bouton large" onClick={() => {
+              const d = menuDe
+              setMenuDe(null)
               exp.lancer(`${nomFichier(d.nom)}.pdf`, () => pdfDocuments([d], equipes))
             }}><Icone.pdf />PDF à imprimer</button>
             <button className="bouton large" onClick={() => {
@@ -227,6 +250,7 @@ function ListeDocuments({ genre, systemes, seances, equipes, ouvrir, montrer }: 
         </div>
       )}
       {exp.fenetre}
+      {lien.fenetre}
     </>
   )
 }

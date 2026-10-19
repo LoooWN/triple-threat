@@ -536,6 +536,7 @@ export function Editeur({ initial, equipes, onChange, onFermer, onPresenter }: P
       )}
       {exp.fenetre}
       <Message texte={message} />
+      <div className="tourner" aria-hidden="true">Tourne l’iPad en paysage</div>
     </main>
   )
 }
