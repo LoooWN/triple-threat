@@ -182,6 +182,9 @@ function ListeDocuments({ genre, systemes, seances, equipes, ouvrir, montrer }: 
               if (nom) garder({ ...menuDe, nom })
               setMenuDe(null)
             }}>Renommer</button>
+            <button className="bouton large" onClick={() => ouvrir({ quoi: 'grand', id: menuDe.id, retour: { quoi: 'bibliotheque' } })}>
+              <Icone.lire />Présenter en grand
+            </button>
             <button className="bouton large" onClick={() => { setCategorieDe(menuDe); setMenuDe(null) }}>Changer de catégorie</button>
             <button className="bouton large" onClick={() => {
               systemes.garder(variante(menuDe))

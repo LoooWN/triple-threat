@@ -47,6 +47,7 @@ export function RevisionAccueil({ documents, resultats, ouvrir }: AccueilProps) 
               <strong>{d.nom}</strong>
               <span>{d.categorie}, {r ? `dernier score ${r.bonnes} / ${r.total}` : 'pas encore révisé'}</span>
             </div>
+            <button className="bouton" onClick={() => ouvrir({ quoi: 'grand', id: d.id, retour: { quoi: 'bibliotheque' } })}>Regarder</button>
             <button className="bouton principal" onClick={() => ouvrir({ quoi: 'revision', id: d.id })}><Icone.lire />Réviser</button>
           </li>
         ))}

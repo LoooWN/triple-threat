@@ -49,9 +49,9 @@ const pres = (x: number, y: number, l = 340, h = 230) => ({
 
 type CibleMenu = Cible | 'plus' | 'equipe'
 
-interface Props { initial: Systeme; equipes: Equipe[]; onChange(s: Systeme): void; onFermer(): void }
+interface Props { initial: Systeme; equipes: Equipe[]; onChange(s: Systeme): void; onFermer(): void; onPresenter(): void }
 
-export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
+export function Editeur({ initial, equipes, onChange, onFermer, onPresenter }: Props) {
   const h = useHistorique(initial)
   const s = h.valeur
   const l = useLecture(s.etapes)
@@ -291,6 +291,7 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
       <>
         <button className="bouton large" onClick={() => miroir(false)}><Icone.miroir />Retourner cette étape (miroir)</button>
         <button className="bouton large" onClick={() => miroir(true)}><Icone.miroir />Retourner {exercice ? 'tout l’exercice' : 'tout le système'}</button>
+        <button className="bouton large" onClick={() => { setMenu(null); onPresenter() }}><Icone.lire />Présenter en grand</button>
         <button className="bouton large" onClick={() => { setMenu(null); setReglage(true) }}><Icone.terrain />Terrain…</button>
         <button className="bouton large" onClick={() => setMenu({ ...menu!, cible: 'equipe' })}><Icone.maillot />Équipe (maillots)…</button>
         <button className="bouton large" onClick={() => { setMenu(null); exp.lancer(`${nomFichier(s.nom)}-etape-${i + 1}.png`, () => imageEtape(s, i, equipes)) }}>

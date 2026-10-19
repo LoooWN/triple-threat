@@ -2,12 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { demanderPersistance, enregistrer, lister, supprimer, type Collection, type Elements } from './stockage.ts'
 import { Bibliotheque, type Onglet } from './ui/Bibliotheque.tsx'
 import { Editeur } from './ui/Editeur.tsx'
+import { GrandFormat } from './ui/GrandFormat.tsx'
 import { MiseAJour } from './ui/MiseAJour.tsx'
 import { Presentation } from './ui/Presentation.tsx'
 import { Revision } from './ui/Revision.tsx'
 import { SeanceEditeur } from './ui/Seances.tsx'
 
-export type Ecran = { quoi: 'bibliotheque' } | { quoi: 'editeur' | 'seance' | 'presentation' | 'revision'; id: string }
+export type Ecran =
+  | { quoi: 'bibliotheque' }
+  | { quoi: 'editeur' | 'seance' | 'presentation' | 'revision'; id: string }
+  | { quoi: 'grand'; id: string; retour: Ecran }
 
 // Une collection gardée en mémoire et enregistrée sur l'iPad à chaque changement.
 function useCollection<C extends Collection>(c: C, alerter: () => void) {
@@ -54,13 +58,17 @@ export default function App() {
   const revisables = [...documents, ...(donnees.paquets.elements ?? []).flatMap((p) => p.systemes)]
     .filter((d, k, l) => l.findIndex((x) => x.id === d.id) === k)
   const aReviser = ecran.quoi === 'revision' ? revisables.find((d) => d.id === ecran.id) : undefined
+  const enGrand = ecran.quoi === 'grand' ? revisables.find((d) => d.id === ecran.id) : undefined
   const ouvert = ecran.quoi === 'editeur' ? documents.find((s) => s.id === ecran.id) : undefined
-  const seance = ecran.quoi !== 'bibliotheque' ? donnees.seances.elements?.find((s) => s.id === ecran.id) : undefined
+  const seance = ecran.quoi === 'seance' || ecran.quoi === 'presentation' ? donnees.seances.elements?.find((s) => s.id === ecran.id) : undefined
   const retour = () => setEcran({ quoi: 'bibliotheque' })
   return (
     <>
       {ouvert ? (
-        <Editeur key={ouvert.id} initial={ouvert} equipes={equipes} onChange={donnees.systemes.garder} onFermer={retour} />
+        <Editeur key={ouvert.id} initial={ouvert} equipes={equipes} onChange={donnees.systemes.garder} onFermer={retour}
+          onPresenter={() => setEcran({ quoi: 'grand', id: ouvert.id, retour: ecran })} />
+      ) : enGrand && ecran.quoi === 'grand' ? (
+        <GrandFormat doc={enGrand} equipes={equipes} onFermer={() => setEcran(ecran.retour)} />
       ) : aReviser ? (
         <Revision key={aReviser.id} doc={aReviser} onFermer={retour} onResultat={donnees.resultats.garder} />
       ) : seance && ecran.quoi === 'seance' ? (

@@ -449,3 +449,36 @@ test('révision : choisir son poste, répondre, voir la correction et le score',
   await expect(page.getByRole('heading', { name: 'Bien su' })).toBeVisible()
   await expect(page.getByText('dernier score 3 / 3')).toBeVisible()
 })
+
+test('présentation grand format : toucher à droite pour avancer, à gauche pour revenir', async ({ page }) => {
+  await passerEnModeAvion(page)
+  await page.getByRole('button', { name: 'Nouveau système' }).click()
+  await page.getByPlaceholder('Ex. : Corne, sortie de 1').fill('Grand écran')
+  await page.getByRole('button', { name: 'Créer' }).click()
+  for (const [x, y] of [[9, 7.5], [5.5, 1.8]] as const) await toucher(page, x, y)
+  await page.getByRole('button', { name: 'Dessiner' }).click()
+  await tracer(page, [[5.5, 1.8], [4, 2.5], [2.5, 3.5]])
+  await page.getByRole('button', { name: 'Coupe' }).click()
+  await page.getByPlaceholder('Ce qui se passe à cette étape…').fill('Le 2 coupe au poste bas.')
+  await page.getByRole('button', { name: 'Ajouter l’étape suivante' }).click()
+
+  // Depuis l'éditeur, puis retour à l'éditeur.
+  await page.getByRole('button', { name: 'Plus' }).click()
+  await page.getByRole('button', { name: 'Présenter en grand' }).click()
+  await expect(page.getByText('Étape 1 / 2')).toBeVisible()
+  await expect(page.locator('.description-grand')).toHaveText('Le 2 coupe au poste bas.')
+  await page.getByRole('button', { name: 'Étape suivante' }).click()
+  await expect(page.getByText('Étape 2 / 2')).toBeVisible({ timeout: 5000 })
+  await page.getByRole('button', { name: 'Étape précédente' }).click()
+  await expect(page.getByText('Étape 1 / 2')).toBeVisible()
+  await page.getByRole('button', { name: 'Fermer' }).click()
+  await expect(page.getByRole('button', { name: 'Plus' })).toBeVisible()
+
+  // Depuis la bibliothèque.
+  await page.getByRole('button', { name: 'Bibliothèque' }).click()
+  await page.getByRole('button', { name: 'Options de Grand écran' }).click()
+  await page.getByRole('button', { name: 'Présenter en grand' }).click()
+  await expect(page.getByText('Étape 1 / 2')).toBeVisible()
+  await page.getByRole('button', { name: 'Fermer' }).click()
+  await expect(page.getByRole('tab', { name: 'Systèmes' })).toBeVisible()
+})
