@@ -11,7 +11,9 @@ import { partagerFichier, retenirTerrain } from '../stockage.ts'
 import { ApercuType, Icone } from './Icones.tsx'
 import { Message, useMessage } from './Message.tsx'
 import { ReglageTerrain } from './ReglageTerrain.tsx'
+import { imageDocument, imageEtape, pdfDocuments } from './export.tsx'
 import { TableauBlanc } from './TableauBlanc.tsx'
+import { useExport } from './useExport.tsx'
 import { TerrainSvg } from './Terrain.tsx'
 import { nomFichier } from './texte.ts'
 import { useHistorique } from './useHistorique.ts'
@@ -69,6 +71,7 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
   const apercuMaterielRef = useRef<Materiel[] | null>(null)
   const [panneau, setPanneau] = useState<'etapes' | 'fiche'>('etapes')
   const [tableau, setTableau] = useState(false)
+  const exp = useExport()
   const [message, montrer] = useMessage()
   const exercice = initial.genre === 'exercice'
   const maxJoueurs = exercice ? 15 : 5
@@ -290,8 +293,17 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
         <button className="bouton large" onClick={() => miroir(true)}><Icone.miroir />Retourner {exercice ? 'tout l’exercice' : 'tout le système'}</button>
         <button className="bouton large" onClick={() => { setMenu(null); setReglage(true) }}><Icone.terrain />Terrain…</button>
         <button className="bouton large" onClick={() => setMenu({ ...menu!, cible: 'equipe' })}><Icone.maillot />Équipe (maillots)…</button>
+        <button className="bouton large" onClick={() => { setMenu(null); exp.lancer(`${nomFichier(s.nom)}-etape-${i + 1}.png`, () => imageEtape(s, i, equipes)) }}>
+          <Icone.image />Image de cette étape
+        </button>
+        <button className="bouton large" onClick={() => { setMenu(null); exp.lancer(`${nomFichier(s.nom)}.png`, () => imageDocument(s, equipes)) }}>
+          <Icone.image />Image avec toutes les étapes
+        </button>
+        <button className="bouton large" onClick={() => { setMenu(null); exp.lancer(`${nomFichier(s.nom)}.pdf`, () => pdfDocuments([s], equipes)) }}>
+          <Icone.pdf />PDF à imprimer
+        </button>
         <button className="bouton large" onClick={() => { setMenu(null); partagerFichier(`${nomFichier(s.nom)}.json`, exporter({ systemes: [s] })) }}>
-          <Icone.partager />Exporter (fichier)
+          <Icone.partager />Fichier pour un autre iPad
         </button>
       </>
     )
@@ -521,6 +533,7 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
         <ReglageTerrain titre="Terrain" bouton="Appliquer" terrain={s.terrain} onAnnuler={() => setReglage(false)}
           onValider={(_, t) => { setReglage(false); retenirTerrain(t); modifierSysteme((sys) => ({ ...sys, terrain: t })) }} />
       )}
+      {exp.fenetre}
       <Message texte={message} />
     </main>
   )

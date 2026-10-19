@@ -107,7 +107,7 @@ test('crée un système complet en mode avion, le retrouve, l’exporte et le r�
   // Export, suppression, réimport.
   const telechargement = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Options de Test avion' }).click()
-  await page.getByRole('button', { name: 'Exporter ce système' }).click()
+  await page.getByRole('button', { name: 'Fichier pour un autre iPad' }).click()
   const fichier = await (await telechargement).path()
   const json = JSON.parse(await readFile(fichier, 'utf8'))
   expect(json).toMatchObject({ format: 'triple-threat', version: 2 })
@@ -343,4 +343,56 @@ test('tableau blanc : annoter par-dessus un système sans le modifier', async ({
   await expect(page.locator('.zone-terrain .action')).toHaveCount(1)
   await page.getByRole('button', { name: 'Tableau blanc' }).click()
   await expect(calque.locator('path')).toHaveCount(0)
+})
+
+test('export en image et en PDF (système seul et playbook), hors ligne', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(navigator, 'canShare', { value: undefined }) })
+  await passerEnModeAvion(page)
+  const telecharger = async (declencher: () => Promise<void>) => {
+    const t = page.waitForEvent('download')
+    await declencher()
+    await page.getByRole('button', { name: 'Partager ou enregistrer' }).click()
+    const d = await t
+    return { nom: d.suggestedFilename(), contenu: await readFile((await d.path())!) }
+  }
+  const pages = (pdf: Buffer) => (pdf.toString('latin1').match(/\/Type \/Page[^s]/g) ?? []).length
+
+  for (const nom of ['Sortie de zone', 'Écran étagé']) {
+    await page.getByRole('button', { name: 'Nouveau système' }).click()
+    await page.getByPlaceholder('Ex. : Corne, sortie de 1').fill(nom)
+    await page.getByRole('button', { name: 'Créer' }).click()
+    if (nom === 'Écran étagé') break
+    await page.getByRole('button', { name: 'Bibliothèque' }).click()
+  }
+  for (const [x, y] of [[9, 7.5], [5.5, 1.8]] as const) await toucher(page, x, y)
+  await page.getByPlaceholder('Ce qui se passe à cette étape…').fill('Le 2 sort de l’écran étagé, passe à l’aile.')
+  await page.getByRole('button', { name: 'Ajouter l’étape suivante' }).click()
+
+  const etape = await telecharger(async () => {
+    await page.getByRole('button', { name: 'Plus' }).click()
+    await page.getByRole('button', { name: 'Image de cette étape' }).click()
+  })
+  expect(etape.nom).toBe('ecran-etage-etape-2.png')
+  expect(etape.contenu.subarray(1, 4).toString()).toBe('PNG')
+
+  const image = await telecharger(async () => {
+    await page.getByRole('button', { name: 'Plus' }).click()
+    await page.getByRole('button', { name: 'Image avec toutes les étapes' }).click()
+  })
+  expect(image.contenu.subarray(1, 4).toString()).toBe('PNG')
+  expect(image.contenu.readUInt32BE(16)).toBeGreaterThan(1800) // largeur : deux colonnes d'étapes
+
+  const pdf = await telecharger(async () => {
+    await page.getByRole('button', { name: 'Plus' }).click()
+    await page.getByRole('button', { name: 'PDF à imprimer' }).click()
+  })
+  expect(pdf.nom).toBe('ecran-etage.pdf')
+  expect(pdf.contenu.subarray(0, 5).toString()).toBe('%PDF-')
+  expect(pages(pdf.contenu)).toBe(1)
+
+  // Playbook : couverture + une page par système.
+  await page.getByRole('button', { name: 'Bibliothèque' }).click()
+  const playbook = await telecharger(() => page.getByRole('button', { name: 'Playbook PDF' }).click())
+  expect(playbook.nom).toBe('playbook-tous-les-systemes.pdf')
+  expect(pages(playbook.contenu)).toBe(3)
 })

@@ -2,15 +2,17 @@ import { useRef, useState } from 'react'
 import type { Donnees, Ecran } from '../App.tsx'
 import { categoriesDe, nouveauDocument, rechercher, variante } from '../modele/documents.ts'
 import { exporter, importer } from '../modele/fichier.ts'
-import type { Genre, Seance, Systeme } from '../modele/types.ts'
+import type { Equipe, Genre, Seance, Systeme } from '../modele/types.ts'
 import { dernierTerrain, partagerFichier, retenirTerrain } from '../stockage.ts'
 import { Effectif } from './Effectif.tsx'
+import { imageDocument, pdfDocuments } from './export.tsx'
 import { Icone } from './Icones.tsx'
 import { Message, useMessage } from './Message.tsx'
 import { ListeSeances } from './Seances.tsx'
 import { ChoixCategorie, ReglageTerrain } from './ReglageTerrain.tsx'
 import { TerrainSvg } from './Terrain.tsx'
 import { maintenant, nomFichier, pluriel } from './texte.ts'
+import { useExport } from './useExport.tsx'
 
 export type Onglet = Genre | 'seances' | 'effectif'
 const ONGLETS: [Onglet, string][] = [['systeme', 'Systèmes'], ['exercice', 'Exercices'], ['seances', 'Séances'], ['effectif', 'Effectif']]
@@ -68,7 +70,7 @@ export function Bibliotheque({ donnees, onglet, setOnglet, ouvrir }: Props) {
       </nav>
 
       {(onglet === 'systeme' || onglet === 'exercice') && (
-        <ListeDocuments genre={onglet} systemes={systemes} seances={tout.seances} ouvrir={ouvrir} montrer={montrer} />
+        <ListeDocuments genre={onglet} systemes={systemes} seances={tout.seances} equipes={tout.equipes} ouvrir={ouvrir} montrer={montrer} />
       )}
       {onglet === 'seances' && <ListeSeances seances={seances} documents={tout.systemes} ouvrir={ouvrir} />}
       {onglet === 'effectif' && <Effectif equipes={equipes} />}
@@ -87,9 +89,17 @@ const MOTS = {
   exercice: { un: 'exercice', ce: 'cet exercice', nouveau: 'Nouvel exercice', aucun: 'Aucun exercice pour l’instant. Crée le premier, ou importe une sauvegarde.' },
 }
 
-interface ListeProps { genre: Genre; systemes: Donnees['systemes']; seances: Seance[]; ouvrir(e: Ecran): void; montrer(t: string): void }
+interface ListeProps {
+  genre: Genre
+  systemes: Donnees['systemes']
+  seances: Seance[]
+  equipes: Equipe[]
+  ouvrir(e: Ecran): void
+  montrer(t: string): void
+}
 
-function ListeDocuments({ genre, systemes, seances, ouvrir, montrer }: ListeProps) {
+function ListeDocuments({ genre, systemes, seances, equipes, ouvrir, montrer }: ListeProps) {
+  const exp = useExport()
   const [recherche, setRecherche] = useState('')
   const [filtre, setFiltre] = useState<string | null>(null)
   const [creation, setCreation] = useState(false)
@@ -111,6 +121,10 @@ function ListeDocuments({ genre, systemes, seances, ouvrir, montrer }: ListeProp
       <div className="outils-liste">
         <input type="search" className="recherche" placeholder="Rechercher un nom, une catégorie, un mot de la description…"
           aria-label="Rechercher" value={recherche} onChange={(e) => setRecherche(e.target.value)} />
+        <button className="bouton" disabled={!trouves.length} onClick={() => {
+          const titre = filtre ?? (recherche.trim() ? `Recherche « ${recherche.trim()} »` : genre === 'systeme' ? 'Tous les systèmes' : 'Tous les exercices')
+          exp.lancer(`playbook-${nomFichier(titre)}.pdf`, () => pdfDocuments(trouves, equipes, titre))
+        }}><Icone.pdf />Playbook PDF</button>
         <button className="bouton principal" onClick={() => setCreation(true)}><Icone.plus />{mots.nouveau}</button>
       </div>
       {tous.length > 0 && (
@@ -173,9 +187,19 @@ function ListeDocuments({ genre, systemes, seances, ouvrir, montrer }: ListeProp
               setMenuDe(null)
             }}><Icone.dupliquer />Dupliquer en variante</button>
             <button className="bouton large" onClick={() => {
+              const d = menuDe
+              setMenuDe(null)
+              exp.lancer(`${nomFichier(d.nom)}.pdf`, () => pdfDocuments([d], equipes))
+            }}><Icone.pdf />PDF à imprimer</button>
+            <button className="bouton large" onClick={() => {
+              const d = menuDe
+              setMenuDe(null)
+              exp.lancer(`${nomFichier(d.nom)}.png`, () => imageDocument(d, equipes))
+            }}><Icone.image />Image avec toutes les étapes</button>
+            <button className="bouton large" onClick={() => {
               partagerFichier(`${nomFichier(menuDe.nom)}.json`, exporter({ systemes: [menuDe] }))
               setMenuDe(null)
-            }}><Icone.partager />Exporter {mots.ce}</button>
+            }}><Icone.partager />Fichier pour un autre iPad</button>
             <button className="bouton large danger" onClick={() => {
               const n = seances.filter((se) => se.blocs.some((b) => b.document === menuDe.id)).length
               const dans = n ? ` Il est utilisé dans ${pluriel(n, 'séance')}, où il sera ignoré.` : ''
@@ -197,6 +221,7 @@ function ListeDocuments({ genre, systemes, seances, ouvrir, montrer }: ListeProp
           </div>
         </div>
       )}
+      {exp.fenetre}
     </>
   )
 }

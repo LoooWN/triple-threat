@@ -30,6 +30,8 @@ export const Icone = {
   plot: () => <I d="M12 3l5.5 16h-11zM4 20h16M9.7 10h4.6M8.6 13.5h6.8" />,
   tourner: () => <I d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4" />,
   tableau: () => <I d="M3 4h18v12H3zM12 16v4M8 21l4-1 4 1M7 12l3-3 2 2 4-4" />,
+  image: () => <I d="M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M15.5 9.5h.01" />,
+  pdf: () => <I d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h6M9 17h6" />,
   haut: () => <I d="M12 19V5M6 11l6-6 6 6" />,
   bas: () => <I d="M12 5v14M6 13l6 6 6-6" />,
   maillot: () => <I d="M8 3L3 6l2 4 2-1v12h10V9l2 1 2-4-5-3c0 2-1.8 3.2-4 3.2S8 5 8 3z" />,

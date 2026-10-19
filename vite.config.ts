@@ -28,5 +28,7 @@ export default defineConfig({
       workbox: { globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'] },
     }),
   ],
+  // jsPDF ne charge ces modules que pour convertir du HTML, ce qu'on ne fait pas : inutile de les embarquer.
+  build: { rolldownOptions: { external: ['html2canvas', 'dompurify', 'canvg'] } },
   test: { include: ['src/**/*.test.ts'] },
 })
