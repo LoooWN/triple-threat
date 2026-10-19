@@ -80,3 +80,31 @@ Livrée en 5 morceaux, chacun testé et mis en ligne : 2a bibliothèque + effect
 - Séance : liste de blocs (durée ± 5 min, note, monter, descendre, retirer), total, « Présenter ». Présentation plein écran : schéma animé, fiche, minuteur par bloc, précédent / suivant, écran maintenu allumé.
 - Tableau blanc : calque par-dessus le terrain, 4 couleurs, 3 épaisseurs, « Effacer tout » ; tout disparaît en fermant.
 - Export : image PNG (étape ou système complet) et PDF (système, exercice, playbook par catégorie) avec jsPDF embarqué.
+
+---
+
+# Phase 3 — validée le 2026-10-19
+
+Les joueurs regardent et révisent **sur leur téléphone**, sans le coach. Livraisons : 3a révision (questions, correction, scores), 3b présentation grand format, 3c lien de révision + écrans téléphone.
+
+## Révision
+- Au début : « Je joue le N » (postes du camp qui a le plus d'actions dans le document) ou « Tous les postes ».
+- Par étape, pour le joueur du poste choisi (ou, en « Tous », chaque joueur qui a une action) :
+  1. « Que fait le N ? » : Coupe / Passe / Dribble / Écran / Ne bouge pas (première action ; « Ne bouge pas » seulement en mode poste) ;
+  2. s'il se déplace : « Où va le N ? » : glisser le pion ou toucher l'endroit, puis Valider ; juste à 1,5 m près de sa position de fin d'étape ;
+  3. s'il passe : « À qui passe le N ? » : toucher le receveur.
+- L'étape est montrée sans flèches pendant la question ; après la réponse : l'étape se joue (animation), la bonne réponse est marquée, la réponse fausse reste visible.
+- Fin : score « bonnes / total », étapes ratées, Recommencer.
+- Résultat enregistré sur l'appareil : `{ id, document, date, poste|null, bonnes, total }`. « À retravailler » = dernier score < 80 % ou jamais révisé.
+
+## Lien de révision
+- Le coach choisit les documents affichés (filtre / recherche, ou un seul via le menu d'une carte) → « Lien de révision » → préparation puis bouton Envoyer (feuille de partage) ou Copier.
+- Adresse : `…/triple-threat/#revision=` + JSON compressé (deflate, base64url) : `{ format: "triple-threat-revision", version: 1, id, titre, creeLe, systemes }`. Sans équipe ni maillots (joueurs mineurs : seuls les numéros de poste circulent).
+- À l'ouverture : le paquet est vérifié et gardé sur le téléphone (même titre → remplacé), puis l'adresse est nettoyée. Un appareil sans documents à lui mais avec des paquets ouvre directement l'écran Révision (pas d'onglets coach).
+- Limite connue : sur iPhone, la page ouverte depuis le lien vit dans Safari, à part de l'appli installée ; Safari peut effacer les scores après 7 jours sans visite (le lien, lui, reste valable).
+
+## Présentation grand format
+- « Présenter en grand » (menu d'une carte, menu Plus de l'éditeur, bouton « Regarder » en révision) : terrain plein écran, description en très gros, toucher à droite = étape suivante animée, à gauche = étape précédente.
+
+## Téléphone
+- Révision et grand format s'adaptent au téléphone (vertical : terrain en haut, question dessous ; horizontal : côte à côte). Le message « Tourne l'iPad » ne concerne plus que l'éditeur et la présentation de séance.
