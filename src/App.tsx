@@ -3,8 +3,10 @@ import { demanderPersistance, enregistrer, lister, supprimer, type Collection, t
 import { Bibliotheque, type Onglet } from './ui/Bibliotheque.tsx'
 import { Editeur } from './ui/Editeur.tsx'
 import { MiseAJour } from './ui/MiseAJour.tsx'
+import { Presentation } from './ui/Presentation.tsx'
+import { SeanceEditeur } from './ui/Seances.tsx'
 
-export type Ecran = { quoi: 'bibliotheque' } | { quoi: 'editeur'; id: string }
+export type Ecran = { quoi: 'bibliotheque' } | { quoi: 'editeur' | 'seance' | 'presentation'; id: string }
 
 // Une collection gardée en mémoire et enregistrée sur l'iPad à chaque changement.
 function useCollection<C extends Collection>(c: C, alerter: () => void) {
@@ -44,12 +46,20 @@ export default function App() {
     demanderPersistance()
   }, [])
 
-  const document = ecran.quoi === 'editeur' ? donnees.systemes.elements?.find((s) => s.id === ecran.id) : undefined
+  const [documents, equipes] = [donnees.systemes.elements ?? [], donnees.equipes.elements ?? []]
+  const ouvert = ecran.quoi === 'editeur' ? documents.find((s) => s.id === ecran.id) : undefined
+  const seance = ecran.quoi !== 'bibliotheque' ? donnees.seances.elements?.find((s) => s.id === ecran.id) : undefined
+  const retour = () => setEcran({ quoi: 'bibliotheque' })
   return (
     <>
-      {document ? (
-        <Editeur key={document.id} initial={document} equipes={donnees.equipes.elements ?? []}
-          onChange={donnees.systemes.garder} onFermer={() => setEcran({ quoi: 'bibliotheque' })} />
+      {ouvert ? (
+        <Editeur key={ouvert.id} initial={ouvert} equipes={equipes} onChange={donnees.systemes.garder} onFermer={retour} />
+      ) : seance && ecran.quoi === 'seance' ? (
+        <SeanceEditeur seance={seance} documents={documents} onChange={donnees.seances.garder} onFermer={retour}
+          onPresenter={() => setEcran({ quoi: 'presentation', id: seance.id })}
+          onSupprimer={() => { donnees.seances.retirer(seance.id); retour() }} />
+      ) : seance && ecran.quoi === 'presentation' ? (
+        <Presentation seance={seance} documents={documents} equipes={equipes} onFermer={() => setEcran({ quoi: 'seance', id: seance.id })} />
       ) : (
         <Bibliotheque donnees={donnees} onglet={onglet} setOnglet={setOnglet} ouvrir={setEcran} />
       )}

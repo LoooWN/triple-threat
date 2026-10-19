@@ -31,7 +31,7 @@ export function variante(s: Systeme): Systeme {
   return { ...structuredClone(s), id: nouvelId('s'), nom: `${s.nom} – variante`, creeLe: maintenant, modifieLe: maintenant }
 }
 
-export const simplifier = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+export const simplifier = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
 // Tous les mots doivent apparaître quelque part : nom, catégorie, descriptions d'étapes, fiche.
 export function rechercher(docs: Systeme[], texte: string): Systeme[] {

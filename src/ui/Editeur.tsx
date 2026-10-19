@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type JSX, type PointerEvent as PE } from 'react'
-import { etatAnime, nombreTemps } from '../modele/animation.ts'
 import { placerDefense } from '../modele/defense.ts'
 import { attacherTrait, changerChemin, changerNumero, deplacerJoueur, etapeSuivante, propager, receveurPasse, retirerJoueur } from '../modele/etapes.ts'
 import { polyligne } from '../modele/geometrie.ts'
@@ -15,6 +14,7 @@ import { ReglageTerrain } from './ReglageTerrain.tsx'
 import { TerrainSvg } from './Terrain.tsx'
 import { nomFichier } from './texte.ts'
 import { useHistorique } from './useHistorique.ts'
+import { CommandesLecture, useLecture } from './useLecture.tsx'
 import { borner, depuisEcran } from './vue.ts'
 
 type Mode = 'placer' | 'dessiner' | 'defense' | 'texte' | 'coach' | 'materiel'
@@ -25,7 +25,6 @@ const ENCRE = '#1b2430'
 const ROUGE = '#b8322a'
 const COULEURS = [ENCRE, ROUGE, '#1f5fa8', '#2e7d4f', '#7a3fa0']
 const TYPES: [TypeAction, string][] = [['coupe', 'Coupe'], ['passe', 'Passe'], ['dribble', 'Dribble'], ['ecran', 'Écran']]
-const DUREE_TEMPS = 1800 // ms par « temps » d'une étape, à vitesse ×1
 const MATERIEL: [TypeMateriel, string][] = [['plot', 'Plot'], ['echelle', 'Échelle'], ['ballon', 'Ballon au sol']]
 
 function lireCible(el: EventTarget): Cible | null {
@@ -52,8 +51,8 @@ interface Props { initial: Systeme; equipes: Equipe[]; onChange(s: Systeme): voi
 export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
   const h = useHistorique(initial)
   const s = h.valeur
-  const [iBrut, setI] = useState(0)
-  const i = Math.min(iBrut, s.etapes.length - 1)
+  const l = useLecture(s.etapes)
+  const { i, lecture, anime } = l
   const etape = s.etapes[i]
   const [mode, setMode] = useState<Mode>('placer')
   const [selection, setSelection] = useState<string | null>(null)
@@ -63,9 +62,6 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
   const [choix, setChoix] = useState<{ joueur: string; chemin: Point[]; x: number; y: number } | null>(null)
   const [menu, setMenu] = useState<{ cible: CibleMenu; x: number; y: number } | null>(null)
   const [couleur, setCouleur] = useState<string | null>(null)
-  const [lecture, setLecture] = useState<'continue' | 'pas' | null>(null)
-  const [anime, setAnime] = useState<ReturnType<typeof etatAnime> | null>(null)
-  const [vitesse, setVitesse] = useState(1)
   const [reglage, setReglage] = useState(false)
   const [typeMateriel, setTypeMateriel] = useState<TypeMateriel>('plot')
   const [apercuMateriel, setApercuMaterielEtat] = useState<Materiel[] | null>(null)
@@ -93,7 +89,7 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
 
   // Toute modification d'une étape passe par ici : les étapes suivantes suivent.
   const modifierEtape = (nouvelle: Etape, cle?: string) => {
-    setAnime(null)
+    l.effacer()
     h.modifier((sys) => {
       const etapes = [...sys.etapes]
       const avant = etapes[i]
@@ -102,7 +98,7 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
     }, cle)
   }
   const modifierSysteme = (f: (sys: Systeme) => Systeme, cle?: string) => {
-    setAnime(null)
+    l.effacer()
     h.modifier(f, cle)
   }
 
@@ -111,8 +107,8 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
     return borner(s.terrain, depuisEcran(s.terrain, [p.x, p.y]))
   }
 
-  const fermerTout = () => { setMenu(null); setChoix(null); setTrait(null); setAnime(null) }
-  const allerA = (k: number) => { fermerTout(); setSelection(null); setLecture(null); setI(k) }
+  const fermerTout = () => { setMenu(null); setChoix(null); setTrait(null); l.effacer() }
+  const allerA = (k: number) => { fermerTout(); setSelection(null); l.aller(k) }
 
   // ---------- Gestes sur le terrain ----------
   const surDown = (e: PE<SVGSVGElement>) => {
@@ -284,41 +280,6 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
     modifierSysteme((sys) => ({ ...sys, etapes: sys.etapes.map((e, k) => (k === i ? miroirEtape(e, sys.terrain.largeur) : e)) }))
   }
 
-  // ---------- Animation ----------
-  useEffect(() => {
-    if (!lecture) return
-    const e = s.etapes[i]
-    const duree = (e.actions.length ? DUREE_TEMPS * nombreTemps(e) : 700) / vitesse
-    const t0 = performance.now()
-    let raf = 0
-    const image = (now: number) => {
-      const t = Math.min(1, (now - t0) / duree)
-      setAnime(etatAnime(e, t))
-      if (t < 1) {
-        raf = requestAnimationFrame(image)
-        return
-      }
-      if (i < s.etapes.length - 1) {
-        setAnime(null)
-        setI(i + 1)
-        if (lecture === 'pas') setLecture(null)
-      } else setLecture(null) // on reste sur la dernière image
-    }
-    raf = requestAnimationFrame(image)
-    return () => cancelAnimationFrame(raf)
-  }, [lecture, i]) // vitesse et système volontairement figés pendant une lecture
-
-  const lire = () => {
-    if (lecture) {
-      setLecture(null)
-      setAnime(null)
-      return
-    }
-    fermerTout()
-    setSelection(null)
-    if (i === s.etapes.length - 1 && !etape.actions.length && s.etapes.length > 1) setI(0)
-    setLecture('continue')
-  }
 
   const contenuMenu = (c: CibleMenu) => {
     if (c === 'plus') return (
@@ -532,15 +493,8 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
           <button className="bouton" onClick={dupliquer}><Icone.dupliquer />Dupliquer</button>
           <button className="bouton" onClick={supprimerEtape} disabled={s.etapes.length < 2}><Icone.corbeille />Supprimer</button>
         </div>
-        <div className="lecture">
-          <button className="bouton rond" onClick={() => allerA(i - 1)} disabled={i === 0 || !!lecture} aria-label="Étape précédente"><Icone.precedent /></button>
-          <button className="bouton principal" onClick={lire}>{lecture ? <><Icone.stop />Arrêter</> : <><Icone.lire />Lire</>}</button>
-          <button className="bouton rond" onClick={() => { fermerTout(); setSelection(null); setLecture('pas') }} disabled={!!lecture} aria-label="Jouer cette étape"><Icone.suivant /></button>
-        </div>
-        <label className="vitesse">
-          Vitesse ×{vitesse.toLocaleString('fr-FR')}
-          <input type="range" min={0.5} max={2} step={0.25} value={vitesse} onChange={(e) => setVitesse(e.target.valueAsNumber)} />
-        </label>
+        <CommandesLecture l={{ ...l, lire: () => { fermerTout(); setSelection(null); l.lire() }, jouerEtape: () => { fermerTout(); setSelection(null); l.jouerEtape() } }}
+          precedent={() => allerA(i - 1)} />
         </>)}
       </aside>
 

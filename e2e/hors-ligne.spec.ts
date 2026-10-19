@@ -250,3 +250,59 @@ test('exercice : plus de 5 joueurs, coach, matériel, plusieurs ballons et fiche
   await page.getByLabel('Rechercher').fill('main exterieure')
   await expect(page.locator('.carte strong')).toHaveText(['Tir en course'])
 })
+
+test('séance : enchaîner des blocs, puis la présenter avec le minuteur', async ({ page }) => {
+  page.on('dialog', (d) => d.accept())
+  await passerEnModeAvion(page)
+  // Un exercice (durée conseillée 12 min) et un système.
+  await page.getByRole('tab', { name: 'Exercices' }).click()
+  await page.getByRole('button', { name: 'Nouvel exercice' }).click()
+  await page.getByPlaceholder('Ex. : Corne, sortie de 1').fill('Échauffement 3 lignes')
+  await page.getByRole('button', { name: 'Créer' }).click()
+  await page.getByRole('button', { name: 'Fiche' }).click()
+  await page.getByLabel('Points clés').fill('Passes à deux mains, appels.')
+  await page.getByLabel('Durée conseillée').fill('12')
+  await page.getByRole('button', { name: 'Bibliothèque' }).click()
+  await page.getByRole('tab', { name: 'Systèmes' }).click()
+  for (const nom of ['Corne', 'À supprimer']) {
+    await page.getByRole('button', { name: 'Nouveau système' }).click()
+    await page.getByPlaceholder('Ex. : Corne, sortie de 1').fill(nom)
+    await page.getByRole('button', { name: 'Créer' }).click()
+    await page.getByRole('button', { name: 'Bibliothèque' }).click()
+  }
+
+  // La séance.
+  await page.getByRole('tab', { name: 'Séances' }).click()
+  await page.getByRole('button', { name: 'Nouvelle séance' }).click()
+  await page.getByLabel('Nom de la séance').fill('Mardi U15')
+  for (const [genre, nom] of [['Exercices', 'Échauffement 3 lignes'], ['Systèmes', 'Corne'], ['Systèmes', 'À supprimer']]) {
+    await page.getByRole('button', { name: 'Ajouter un exercice ou un système' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: genre }).click()
+    await page.getByRole('dialog').getByRole('button', { name: new RegExp(`^${nom}`) }).click()
+  }
+  await expect(page.getByText('durée totale', { exact: false })).toContainText('32 min')
+  await page.getByRole('group', { name: 'Durée du bloc 2' }).getByRole('button', { name: '5 minutes de plus' }).click()
+  await page.getByRole('button', { name: 'Monter le bloc 2' }).click()
+  await expect(page.locator('.bloc .infos strong')).toHaveText(['Corne', 'Échauffement 3 lignes', 'À supprimer'])
+
+  // Un système supprimé de la bibliothèque est ignoré en présentation.
+  await page.getByRole('button', { name: 'Bibliothèque' }).click()
+  await page.getByRole('tab', { name: 'Systèmes' }).click()
+  await page.getByRole('button', { name: 'Options de À supprimer' }).click()
+  await page.getByRole('button', { name: 'Supprimer', exact: true }).click()
+  await page.getByRole('tab', { name: 'Séances' }).click()
+  await expect(page.getByText('3 blocs, 27 min', { exact: false })).toBeVisible()
+  await page.getByRole('button', { name: 'Présenter' }).click()
+
+  await expect(page.locator('.titre-presentation')).toContainText('1 / 2Corne')
+  await expect(page.getByRole('timer')).toHaveText('15:00')
+  await page.getByRole('button', { name: 'Démarrer' }).click()
+  await expect(page.getByRole('timer')).toHaveText('14:59', { timeout: 3000 })
+  await page.getByRole('button', { name: 'Suivant' }).click()
+  await expect(page.locator('.titre-presentation')).toContainText('2 / 2Échauffement 3 lignes')
+  await expect(page.getByRole('timer')).toHaveText('12:00')
+  await expect(page.getByText('Passes à deux mains, appels.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Suivant' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Quitter' }).click()
+  await expect(page.getByLabel('Nom de la séance')).toHaveValue('Mardi U15')
+})

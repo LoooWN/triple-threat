@@ -276,3 +276,66 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 @media (orientation: portrait) and (pointer: coarse) {
   .tourner { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: var(--nuit); font: 800 24px var(--titre); }
 }
+
+/* ---------- Séances ---------- */
+.liste-seances { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.liste-seances li { display: flex; align-items: stretch; gap: 10px; }
+.seance {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px 16px;
+  border: 0; border-radius: 14px; background: var(--nuit-2); text-align: left;
+}
+.seance strong { font: 800 19px var(--titre); }
+.seance span { color: var(--craie-2); }
+.seance-editeur { display: flex; flex-direction: column; height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.titre-champ, .barre .date {
+  min-height: 48px; padding: 0 12px; border: 0; border-radius: 10px; background: var(--nuit); color: var(--craie); font: 800 19px var(--titre);
+}
+.titre-champ { flex: 1; min-width: 0; }
+.contenu-seance { flex: 1; overflow-y: auto; padding: 16px 20px 40px; }
+.total { margin: 0 0 12px; color: var(--craie-2); font-size: 17px; }
+.total strong { color: var(--craie); }
+.blocs { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.bloc { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 14px; background: var(--nuit-2); }
+.bloc .rang { width: 34px; flex: none; text-align: center; font: 800 22px var(--titre); color: var(--craie-2); }
+.bloc .terrain { width: 120px; height: 90px; flex: none; border-radius: 8px; background: var(--abords); pointer-events: none; }
+.bloc .terrain.absent { background: var(--nuit-3); }
+.bloc .infos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.bloc .infos strong { font: 800 18px var(--titre); }
+.bloc .infos span { color: var(--craie-2); font-size: 14px; }
+.bloc .note { min-height: 42px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--nuit); color: var(--craie); font-size: 16px; }
+.duree-bloc { display: flex; align-items: center; gap: 6px; }
+.duree-bloc span { width: 64px; text-align: center; font: 800 18px var(--titre); }
+.duree-bloc .bouton { font-size: 24px; }
+.ordre { display: flex; gap: 6px; }
+.actions-seance { display: flex; justify-content: space-between; gap: 10px; }
+.choix-document { display: flex; flex-direction: column; gap: 10px; width: min(520px, 100%); }
+.choix-document .resultats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 50dvh; overflow-y: auto; }
+.choix-document .resultats .bouton { justify-content: space-between; }
+.choix-document .resultats span { color: var(--craie-2); font-weight: 400; }
+
+/* ---------- Présentation (lisible de loin) ---------- */
+.presentation {
+  display: grid; height: 100dvh;
+  grid-template: "barre barre" auto "terrain panneau" minmax(0, 1fr) "navigation navigation" auto / minmax(0, 1fr) 320px;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.presentation.entier { grid-template: "barre" auto "terrain" minmax(0, 1fr) "panneau" auto "navigation" auto / minmax(0, 1fr); }
+.presentation.entier .panneau { flex-direction: row; flex-wrap: wrap; align-items: center; max-height: 30dvh; }
+.titre-presentation { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 12px; }
+.titre-presentation span { color: var(--craie-2); font: 800 20px var(--titre); }
+.titre-presentation strong { font: 800 26px var(--titre); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chrono {
+  min-width: 150px; padding: 4px 14px; border-radius: 12px; background: var(--nuit); text-align: center;
+  font: 800 38px var(--titre); font-variant-numeric: tabular-nums;
+}
+.chrono.fini { background: var(--rouge); font-size: 22px; line-height: 50px; }
+@media (prefers-reduced-motion: no-preference) {
+  .chrono.fini { animation: clignote 1s ease-in-out infinite alternate; }
+}
+@keyframes clignote { to { opacity: .55; } }
+.texte-etape { margin: 0; font-size: 20px; line-height: 1.45; }
+.fiche h3 { margin: 0 0 4px; font: 800 18px var(--titre); color: var(--erable); }
+.fiche p { margin: 0; font-size: 18px; line-height: 1.45; white-space: pre-line; }
+.note-bloc { margin: 0; padding: 10px 12px; border-left: 4px solid var(--erable); background: var(--nuit); font-size: 18px; }
+.navigation { grid-area: navigation; display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--nuit-2); }
+.navigation .bouton { min-height: 56px; min-width: 200px; font-size: 19px; }
