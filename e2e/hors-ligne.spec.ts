@@ -306,3 +306,41 @@ test('séance : enchaîner des blocs, puis la présenter avec le minuteur', asyn
   await page.getByRole('button', { name: 'Quitter' }).click()
   await expect(page.getByLabel('Nom de la séance')).toHaveValue('Mardi U15')
 })
+
+test('tableau blanc : annoter par-dessus un système sans le modifier', async ({ page }) => {
+  await passerEnModeAvion(page)
+  await page.getByRole('button', { name: 'Nouveau système' }).click()
+  await page.getByPlaceholder('Ex. : Corne, sortie de 1').fill('Temps mort')
+  await page.getByRole('button', { name: 'Créer' }).click()
+  for (const [x, y] of [[9, 7.5], [5.5, 1.8]] as const) await toucher(page, x, y)
+  await page.getByRole('button', { name: 'Dessiner' }).click()
+  await tracer(page, [[5.5, 1.8], [4, 2.5], [2.5, 3.5]])
+  await page.getByRole('button', { name: 'Coupe' }).click()
+
+  await page.getByRole('button', { name: 'Tableau blanc' }).click()
+  const calque = page.getByLabel('Tableau blanc', { exact: true })
+  const boite = (await calque.boundingBox())!
+  const griffonner = async (dx: number) => {
+    await page.mouse.move(boite.x + boite.width * 0.3 + dx, boite.y + boite.height * 0.4)
+    await page.mouse.down()
+    await page.mouse.move(boite.x + boite.width * 0.6 + dx, boite.y + boite.height * 0.6, { steps: 10 })
+    await page.mouse.up()
+  }
+  await griffonner(0)
+  await page.getByRole('button', { name: 'Bleu' }).click()
+  await page.getByRole('button', { name: 'Épais' }).click()
+  await griffonner(40)
+  await expect(calque.locator('path')).toHaveCount(2)
+  await expect(calque.locator('path').last()).toHaveAttribute('stroke', '#1f5fa8')
+  await page.getByRole('button', { name: 'Effacer tout' }).click()
+  await expect(calque.locator('path')).toHaveCount(0)
+  await griffonner(0)
+  await page.getByRole('button', { name: 'Fermer' }).click()
+  await expect(calque).toHaveCount(0)
+
+  // Le système n'a pas changé : toujours 2 joueurs et 1 action, et le tableau rouvert est vide.
+  await expect(page.locator('.joueur')).toHaveCount(2)
+  await expect(page.locator('.zone-terrain .action')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Tableau blanc' }).click()
+  await expect(calque.locator('path')).toHaveCount(0)
+})

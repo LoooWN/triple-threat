@@ -3,6 +3,7 @@ import { maillotsAffiches } from '../modele/documents.ts'
 import type { Bloc, Equipe, Seance, Systeme } from '../modele/types.ts'
 import { Icone } from './Icones.tsx'
 import { blocsValides } from './Seances.tsx'
+import { TableauBlanc } from './TableauBlanc.tsx'
 import { TerrainSvg } from './Terrain.tsx'
 import { minuteur } from './texte.ts'
 import { CommandesLecture, useLecture } from './useLecture.tsx'
@@ -53,6 +54,7 @@ function BlocPresente({ bloc, doc, equipes, rang, total, precedent, suivant, onF
   const l = useLecture(doc.etapes)
   const [restant, setRestant] = useState(bloc.duree * 60)
   const [enMarche, setEnMarche] = useState(false)
+  const [tableau, setTableau] = useState(false)
   useEffect(() => {
     if (!enMarche) return
     const t = setInterval(() => setRestant((r) => r - 1), 1000)
@@ -70,6 +72,7 @@ function BlocPresente({ bloc, doc, equipes, rang, total, precedent, suivant, onF
           <span>{rang + 1} / {total}</span>
           <strong>{doc.nom}</strong>
         </div>
+        <button className="bouton" aria-pressed={tableau} onClick={() => setTableau(!tableau)}><Icone.tableau />Tableau blanc</button>
         <div className={`chrono${fini ? ' fini' : ''}`} role="timer" aria-label="Temps restant">{fini ? 'Temps écoulé' : minuteur(restant)}</div>
         <button className="bouton principal" onClick={() => setEnMarche(!enMarche)}>
           {enMarche ? 'Pause' : restant === bloc.duree * 60 ? 'Démarrer' : 'Reprendre'}
@@ -81,6 +84,7 @@ function BlocPresente({ bloc, doc, equipes, rang, total, precedent, suivant, onF
 
       <div className="zone-terrain">
         <TerrainSvg terrain={doc.terrain} etape={etape} anime={l.anime} maillots={maillotsAffiches(doc, equipes)} materiel={doc.materiel} />
+        {tableau && <TableauBlanc terrain={doc.terrain} onFermer={() => setTableau(false)} />}
       </div>
 
       <aside className="panneau">

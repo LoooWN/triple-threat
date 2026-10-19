@@ -11,6 +11,7 @@ import { partagerFichier, retenirTerrain } from '../stockage.ts'
 import { ApercuType, Icone } from './Icones.tsx'
 import { Message, useMessage } from './Message.tsx'
 import { ReglageTerrain } from './ReglageTerrain.tsx'
+import { TableauBlanc } from './TableauBlanc.tsx'
 import { TerrainSvg } from './Terrain.tsx'
 import { nomFichier } from './texte.ts'
 import { useHistorique } from './useHistorique.ts'
@@ -67,6 +68,7 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
   const [apercuMateriel, setApercuMaterielEtat] = useState<Materiel[] | null>(null)
   const apercuMaterielRef = useRef<Materiel[] | null>(null)
   const [panneau, setPanneau] = useState<'etapes' | 'fiche'>('etapes')
+  const [tableau, setTableau] = useState(false)
   const [message, montrer] = useMessage()
   const exercice = initial.genre === 'exercice'
   const maxJoueurs = exercice ? 15 : 5
@@ -419,6 +421,7 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
         <div className="groupe">
           <button className="bouton rond" onClick={() => { fermerTout(); h.annuler() }} disabled={!h.peutAnnuler} aria-label="Annuler"><Icone.annuler /></button>
           <button className="bouton rond" onClick={() => { fermerTout(); h.retablir() }} disabled={!h.peutRetablir} aria-label="Rétablir"><Icone.retablir /></button>
+          <button className="bouton" aria-pressed={tableau} onClick={() => { fermerTout(); setTableau(!tableau) }}><Icone.tableau />Tableau blanc</button>
           <button className="bouton" onClick={(e) => setMenu({ cible: 'plus', x: e.clientX, y: e.clientY })}><Icone.plusDe />Plus</button>
         </div>
       </header>
@@ -453,6 +456,7 @@ export function Editeur({ initial, equipes, onChange, onFermer }: Props) {
           trait={choix ? polyligne(choix.chemin) : trait}
           onPointerDown={surDown} onPointerMove={surMove} onPointerUp={surUp} onPointerCancel={surCancel}
           onContextMenu={(e) => e.preventDefault()} />
+        {tableau && <TableauBlanc terrain={s.terrain} onFermer={() => setTableau(false)} />}
       </div>
 
       <aside className="panneau">
