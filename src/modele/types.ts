@@ -56,3 +56,19 @@ export const nouvelId = (prefixe: string) => `${prefixe}-${Math.random().toStrin
 // Révision (sur l'appareil qui révise) : un score par passage, et les paquets reçus par lien.
 export interface Resultat { id: string; document: string; date: string; poste: number | null; bonnes: number; total: number }
 export interface Paquet { id: string; titre: string; creeLe: string; systemes: Systeme[] }
+
+// Statistiques de match, notées en direct par le coach.
+export type Stat = 'tir2' | 'tir2rate' | 'tir3' | 'tir3rate' | 'lf' | 'lfrate' | 'rebOff' | 'rebDef' | 'passe' | 'interception' | 'contre' | 'perte' | 'faute'
+export interface Evenement { id: string; joueur: string; stat: Stat; quart: number }
+export interface Match {
+  id: string
+  equipe: string | null
+  adversaire: string
+  date: string
+  presents: string[] // ids des joueurs de l'équipe
+  evenements: Evenement[]
+  adverses: { id: string; quart: number; points: number }[]
+  quart: number // 1 à 4, puis 5, 6… pour les prolongations
+  creeLe: string
+  modifieLe: string
+}

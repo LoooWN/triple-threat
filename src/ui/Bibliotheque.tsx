@@ -9,6 +9,7 @@ import { imageDocument, pdfDocuments } from './export.tsx'
 import { Icone } from './Icones.tsx'
 import { Message, useMessage } from './Message.tsx'
 import { RevisionAccueil } from './Revision.tsx'
+import { ListeMatchs } from './Matchs.tsx'
 import { ListeSeances } from './Seances.tsx'
 import { ChoixCategorie, ReglageTerrain } from './ReglageTerrain.tsx'
 import { TerrainSvg } from './Terrain.tsx'
@@ -16,8 +17,10 @@ import { maintenant, nomFichier, pluriel } from './texte.ts'
 import { useExport } from './useExport.tsx'
 import { useLien } from './useLien.tsx'
 
-export type Onglet = Genre | 'seances' | 'effectif' | 'revision'
-const ONGLETS: [Onglet, string][] = [['systeme', 'Systèmes'], ['exercice', 'Exercices'], ['seances', 'Séances'], ['effectif', 'Effectif'], ['revision', 'Révision']]
+export type Onglet = Genre | 'seances' | 'matchs' | 'effectif' | 'revision'
+const ONGLETS: [Onglet, string][] = [
+  ['systeme', 'Systèmes'], ['exercice', 'Exercices'], ['seances', 'Séances'], ['matchs', 'Matchs'], ['effectif', 'Effectif'], ['revision', 'Révision'],
+]
 
 interface Props { donnees: Donnees; revisables: Systeme[]; onglet: Onglet; setOnglet(o: Onglet): void; ouvrir(e: Ecran): void }
 
@@ -25,7 +28,7 @@ export function Bibliotheque({ donnees, revisables, onglet, setOnglet, ouvrir }:
   const [message, montrer] = useMessage()
   const fichier = useRef<HTMLInputElement>(null)
   const { systemes, seances, equipes } = donnees
-  const tout = { systemes: systemes.elements ?? [], seances: seances.elements ?? [], equipes: equipes.elements ?? [] }
+  const tout = { systemes: systemes.elements ?? [], seances: seances.elements ?? [], equipes: equipes.elements ?? [], matchs: donnees.matchs.elements ?? [] }
 
   const importerFichier = async (f: File | undefined) => {
     if (!f) return
@@ -34,11 +37,13 @@ export function Bibliotheque({ donnees, revisables, onglet, setOnglet, ouvrir }:
       r.systemes.forEach(systemes.garder)
       r.seances.forEach(seances.garder)
       r.equipes.forEach(equipes.garder)
+      r.matchs.forEach(donnees.matchs.garder)
       const morceaux = ([
         [r.systemes.filter((s) => s.genre === 'systeme').length, 'système'],
         [r.systemes.filter((s) => s.genre === 'exercice').length, 'exercice'],
         [r.seances.length, 'séance'],
         [r.equipes.length, 'équipe'],
+        [r.matchs.length, 'match'],
       ] as const).filter(([n]) => n).map(([n, mot]) => pluriel(n, mot))
       const deja = r.dejaPresents ? ` (${r.dejaPresents} déjà sur cet iPad)` : ''
       montrer(morceaux.length ? `Importé : ${morceaux.join(', ')}.${deja}` : r.dejaPresents ? 'Tout est déjà sur cet iPad.' : 'Ce fichier est vide.')
@@ -87,7 +92,8 @@ export function Bibliotheque({ donnees, revisables, onglet, setOnglet, ouvrir }:
         <ListeDocuments genre={onglet} systemes={systemes} seances={tout.seances} equipes={tout.equipes} ouvrir={ouvrir} montrer={montrer} />
       )}
       {onglet === 'seances' && <ListeSeances seances={seances} documents={tout.systemes} ouvrir={ouvrir} />}
-      {onglet === 'effectif' && <Effectif equipes={equipes} />}
+      {onglet === 'matchs' && <ListeMatchs matchs={donnees.matchs} equipes={tout.equipes} ouvrir={ouvrir} />}
+      {onglet === 'effectif' && <Effectif equipes={equipes} matchs={tout.matchs} />}
       {onglet === 'revision' && <RevisionAccueil documents={revisables} resultats={donnees.resultats.elements ?? []} paquets={donnees.paquets} ouvrir={ouvrir} />}
 
       <p className="conseil">

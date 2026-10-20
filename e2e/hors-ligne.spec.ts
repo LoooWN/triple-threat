@@ -532,3 +532,52 @@ test('lien de révision : le coach envoie, le joueur révise sur son téléphone
   await expect(tel.locator('.liste-revision').last().locator('li')).toHaveCount(1)
   await telephone.close()
 })
+
+test('statistiques de match : noter en direct, score, quarts-temps, feuille et moyennes', async ({ page }) => {
+  page.on('dialog', (d) => d.accept(d.message().includes('équipe') ? 'U15 F' : undefined))
+  await passerEnModeAvion(page)
+  await page.getByRole('tab', { name: 'Effectif' }).click()
+  await page.getByRole('button', { name: 'Nouvelle équipe' }).click()
+  const equipe = page.getByRole('region', { name: 'U15 F' })
+  for (const [maillot, nom] of [['00', 'Léa'], ['7', 'Inès']]) {
+    await equipe.getByRole('button', { name: 'Ajouter un joueur' }).click()
+    await equipe.getByLabel('Numéro de maillot').last().fill(maillot)
+    await equipe.getByLabel('Prénom').last().fill(nom)
+  }
+
+  await page.getByRole('tab', { name: 'Matchs' }).click()
+  await page.getByRole('button', { name: 'Nouveau match' }).click()
+  await page.getByLabel('Adversaire').fill('Lyon')
+  await page.getByRole('button', { name: 'Commencer' }).click()
+
+  const stat = (nom: string) => page.getByRole('region', { name: 'Statistiques' }).getByRole('button', { name: nom, exact: true })
+  await expect(stat('2 pts')).toBeDisabled()
+  await page.getByRole('button', { name: /^00\s*Léa/ }).click()
+  await stat('2 pts').click()
+  await stat('3 pts').click()
+  await page.getByRole('button', { name: /^7\s*Inès/ }).click()
+  await stat('Rebond déf.').click()
+  for (let k = 0; k < 4; k++) await stat('Faute').click()
+  await expect(page.getByRole('button', { name: /^7\s*Inès/ })).toHaveClass(/alerte-fautes/)
+  await page.getByRole('group', { name: 'Points adverses' }).getByRole('button', { name: '+2' }).click()
+  await expect(page.locator('.score-match strong')).toHaveText('5 – 2')
+
+  await page.getByRole('group', { name: 'Quart-temps' }).getByRole('button', { name: 'Q2' }).click()
+  await page.getByRole('button', { name: /^00\s*Léa/ }).click()
+  await stat('Lancer franc').click()
+  await expect(page.locator('.score-match strong')).toHaveText('6 – 2')
+  await page.getByRole('button', { name: 'Annuler la dernière action' }).click()
+  await expect(page.locator('.score-match strong')).toHaveText('5 – 2')
+  await stat('Passe déc.').click()
+
+  await page.getByRole('button', { name: 'Feuille' }).click()
+  const ligneLea = page.getByRole('row', { name: /00 Léa/ })
+  await expect(ligneLea.getByRole('cell').first()).toHaveText('5')
+  await expect(page.getByRole('row', { name: /7 Inès/ }).getByRole('cell').last()).toHaveText('4')
+
+  await page.getByRole('button', { name: 'Bibliothèque' }).click()
+  await expect(page.getByText('U15 F 5 – 2 Lyon')).toBeVisible()
+  await page.getByRole('tab', { name: 'Effectif' }).click()
+  await expect(page.getByText('Moyennes par match (1 matchs notés)')).toBeVisible()
+  await expect(page.locator('.stats-saison').getByRole('row', { name: /00 Léa/ }).getByRole('cell').nth(1)).toHaveText('5')
+})

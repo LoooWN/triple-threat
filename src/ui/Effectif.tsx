@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import type { Donnees } from '../App.tsx'
-import { nouvelId, type Equipe, type JoueurEffectif } from '../modele/types.ts'
+import { saison } from '../modele/stats.ts'
+import { nouvelId, type Equipe, type JoueurEffectif, type Match } from '../modele/types.ts'
 import { Icone } from './Icones.tsx'
 import { maintenant } from './texte.ts'
 
-export function Effectif({ equipes }: { equipes: Donnees['equipes'] }) {
+export function Effectif({ equipes, matchs }: { equipes: Donnees['equipes']; matchs: Match[] }) {
   const [aFocaliser, setAFocaliser] = useState<string | null>(null)
   const liste = [...(equipes.elements ?? [])].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
   const garder = (e: Equipe, changement: Partial<Equipe>) => equipes.garder({ ...e, ...changement, modifieLe: maintenant() })
@@ -51,6 +52,25 @@ export function Effectif({ equipes }: { equipes: Donnees['equipes'] }) {
               ))}
             </ul>
             {doublons.size > 0 && <p className="alerte">Numéro en double : {[...doublons].join(', ')}</p>}
+            {matchs.some((m) => m.equipe === e.id) && (
+              <div className="stats-saison">
+                <h3>Moyennes par match ({matchs.filter((m) => m.equipe === e.id).length} matchs notés)</h3>
+                <table>
+                  <thead><tr><th>Joueur</th><th>Matchs</th><th>Pts</th><th>Reb.</th><th>Pd</th><th>Int.</th><th>Pb</th><th>F</th><th>LF</th></tr></thead>
+                  <tbody>
+                    {e.joueurs.map((j) => {
+                      const s = saison(matchs.filter((m) => m.equipe === e.id), j.id)
+                      return (
+                        <tr key={j.id}>
+                          <th>{j.maillot} {j.nom}</th><td>{s.matchs}</td><td>{s.moyennes.pts}</td><td>{s.moyennes.rebonds}</td><td>{s.moyennes.passes}</td>
+                          <td>{s.moyennes.interceptions}</td><td>{s.moyennes.pertes}</td><td>{s.moyennes.fautes}</td><td>{s.pourcentageLf === null ? '–' : `${s.pourcentageLf} %`}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
             <button className="bouton" onClick={() => {
               const j = { id: nouvelId('j'), nom: '', maillot: '' }
               setAFocaliser(j.id)

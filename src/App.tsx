@@ -4,6 +4,7 @@ import { demanderPersistance, enregistrer, lister, supprimer, type Collection, t
 import { Bibliotheque, type Onglet } from './ui/Bibliotheque.tsx'
 import { Editeur } from './ui/Editeur.tsx'
 import { GrandFormat } from './ui/GrandFormat.tsx'
+import { MatchDirect } from './ui/Matchs.tsx'
 import { MiseAJour } from './ui/MiseAJour.tsx'
 import { Presentation } from './ui/Presentation.tsx'
 import { Revision } from './ui/Revision.tsx'
@@ -11,7 +12,7 @@ import { SeanceEditeur } from './ui/Seances.tsx'
 
 export type Ecran =
   | { quoi: 'bibliotheque' }
-  | { quoi: 'editeur' | 'seance' | 'presentation' | 'revision'; id: string }
+  | { quoi: 'editeur' | 'seance' | 'presentation' | 'revision' | 'match'; id: string }
   | { quoi: 'grand'; id: string; retour: Ecran }
 
 // Une collection gardée en mémoire et enregistrée sur l'iPad à chaque changement.
@@ -48,6 +49,7 @@ export default function App() {
     equipes: useCollection('equipes', alerter),
     resultats: useCollection('resultats', alerter),
     paquets: useCollection('paquets', alerter),
+    matchs: useCollection('matchs', alerter),
   }
 
   useEffect(() => {
@@ -83,6 +85,7 @@ export default function App() {
     .filter((d, k, l) => l.findIndex((x) => x.id === d.id) === k)
   const aReviser = ecran.quoi === 'revision' ? revisables.find((d) => d.id === ecran.id) : undefined
   const enGrand = ecran.quoi === 'grand' ? revisables.find((d) => d.id === ecran.id) : undefined
+  const match = ecran.quoi === 'match' ? donnees.matchs.elements?.find((m) => m.id === ecran.id) : undefined
   const ouvert = ecran.quoi === 'editeur' ? documents.find((s) => s.id === ecran.id) : undefined
   const seance = ecran.quoi === 'seance' || ecran.quoi === 'presentation' ? donnees.seances.elements?.find((s) => s.id === ecran.id) : undefined
   const retour = () => setEcran({ quoi: 'bibliotheque' })
@@ -93,6 +96,9 @@ export default function App() {
           onPresenter={() => setEcran({ quoi: 'grand', id: ouvert.id, retour: ecran })} />
       ) : enGrand && ecran.quoi === 'grand' ? (
         <GrandFormat doc={enGrand} equipes={equipes} onFermer={() => setEcran(ecran.retour)} />
+      ) : match ? (
+        <MatchDirect match={match} equipe={equipes.find((e) => e.id === match.equipe)} onChange={donnees.matchs.garder} onFermer={retour}
+          onSupprimer={() => { donnees.matchs.retirer(match.id); retour() }} />
       ) : aReviser ? (
         <Revision key={aReviser.id} doc={aReviser} onFermer={retour} onResultat={donnees.resultats.garder} />
       ) : seance && ecran.quoi === 'seance' ? (

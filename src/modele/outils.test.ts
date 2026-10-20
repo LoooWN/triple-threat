@@ -30,7 +30,7 @@ const seance = (): Seance => ({
   id: 'se1', nom: 'Mardi', date: '2026-10-21', creeLe: 'c', modifieLe: 'm', blocs: [{ id: 'b1', document: 's1', duree: 15, note: '' }],
 })
 const equipe = (): Equipe => ({ id: 'eq1', nom: 'U15 F', modifieLe: 'm', joueurs: [{ id: 'j1', nom: 'Léa', maillot: '00' }] })
-const vide = { systemes: [], seances: [], equipes: [] }
+const vide = { systemes: [], seances: [], equipes: [], matchs: [] }
 const ligne = (de: Point, a: Point, n = 30): Point[] =>
   Array.from({ length: n + 1 }, (_, i) => [de[0] + ((a[0] - de[0]) * i) / n, de[1] + ((a[1] - de[1]) * i) / n])
 
@@ -125,7 +125,15 @@ describe('export / import', () => {
   it('fait l’aller-retour sans rien perdre, séances et équipes comprises', () => {
     const texte = exporter({ systemes: [systeme()], seances: [seance()], equipes: [equipe()] })
     expect(JSON.parse(texte)).toMatchObject({ format: 'triple-threat', version: 2 })
-    expect(importer(texte, vide)).toEqual({ systemes: [systeme()], seances: [seance()], equipes: [equipe()], dejaPresents: 0 })
+    expect(importer(texte, vide)).toEqual({ systemes: [systeme()], seances: [seance()], equipes: [equipe()], matchs: [], dejaPresents: 0 })
+  })
+  it('sauvegarde et reprend les matchs, sans doublon', () => {
+    const m = { id: 'm1', equipe: 'eq1', adversaire: 'Lyon', date: '2026-10-25', presents: ['j1'], quart: 2, creeLe: 'c', modifieLe: 'm',
+      evenements: [{ id: 'e1', joueur: 'j1', stat: 'tir3' as const, quart: 1 }], adverses: [{ id: 'a1', quart: 1, points: 2 }] }
+    const texte = exporter({ systemes: [], matchs: [m] })
+    expect(importer(texte, vide).matchs).toEqual([m])
+    expect(importer(texte, { ...vide, matchs: [m] })).toMatchObject({ matchs: [], dejaPresents: 1 })
+    expect(() => importer(exporter({ systemes: [], matchs: [{ ...m, evenements: [{ id: 'x', joueur: 'j1', stat: 'dunk', quart: 1 }] }] as never }), vide)).toThrow(/abîmé/)
   })
   it('lit les fichiers de la version 1 (un seul ballon, sans genre ni catégorie)', () => {
     const s = systeme()
@@ -139,14 +147,14 @@ describe('export / import', () => {
   })
   it('n’écrase jamais : copie si modifié, ignoré si identique, et la séance suit la copie', () => {
     const texte = exporter({ systemes: [systeme()], seances: [seance()], equipes: [equipe()] })
-    const r = importer(texte, { systemes: [{ ...systeme(), modifieLe: 'autre' }], seances: [], equipes: [{ ...equipe(), nom: 'Mon équipe' }] })
+    const r = importer(texte, { systemes: [{ ...systeme(), modifieLe: 'autre' }], seances: [], equipes: [{ ...equipe(), nom: 'Mon équipe' }], matchs: [] })
     expect(r.systemes[0].id).not.toBe('s1')
     expect(r.systemes[0].nom).toBe('Corne (copie)')
     expect(r.seances[0].blocs[0].document).toBe(r.systemes[0].id)
     expect(r.equipes).toEqual([])
     expect(r.dejaPresents).toBe(1)
-    expect(importer(texte, { systemes: [systeme()], seances: [seance()], equipes: [equipe()] }))
-      .toEqual({ systemes: [], seances: [], equipes: [], dejaPresents: 3 })
+    expect(importer(texte, { systemes: [systeme()], seances: [seance()], equipes: [equipe()], matchs: [] }))
+      .toEqual({ systemes: [], seances: [], equipes: [], matchs: [], dejaPresents: 3 })
   })
   it('refuse un fichier illisible, étranger, plus récent ou abîmé avec un message clair', () => {
     expect(() => importer('pas du json', vide)).toThrow(/lisible/)
