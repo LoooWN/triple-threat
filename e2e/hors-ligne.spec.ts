@@ -397,6 +397,21 @@ test('export en image et en PDF (système seul et playbook), hors ligne', async 
   expect(pages(playbook.contenu)).toBe(3)
 })
 
+test('tir : double trait dont la flèche se colle au panier, même tracé à côté', async ({ page }) => {
+  await passerEnModeAvion(page)
+  await page.getByRole('button', { name: 'Nouveau système' }).click()
+  await page.getByPlaceholder('Ex. : Corne, sortie de 1').fill('Essai')
+  await page.getByRole('button', { name: 'Créer' }).click()
+  await toucher(page, 9, 7.5)
+  await page.getByRole('button', { name: 'Dessiner' }).click()
+  await tracer(page, [[9, 7.5], [6, 6], [3, 5]])
+  await page.getByRole('button', { name: 'Tir' }).click()
+  await expect(page.locator('.action.tir')).toHaveCount(1)
+  // Pointe de la flèche : à 0,25 m du panier (x 1,575 ; y 7,5) → dessin à l'écran (8,7 ; 2,775).
+  const [px, py] = (await page.locator('.action.tir .tete').getAttribute('d'))!.match(/-?[\d.]+/g)!.map(Number)
+  expect(Math.hypot(px - 8.7, py - 2.775)).toBeLessThan(0.35)
+})
+
 test('révision : choisir son poste, répondre, voir la correction et le score', async ({ page }) => {
   await passerEnModeAvion(page)
   await page.getByRole('button', { name: 'Nouveau système' }).click()

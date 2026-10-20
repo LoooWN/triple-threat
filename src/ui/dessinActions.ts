@@ -3,6 +3,8 @@ import type { Action, Point, Terrain } from '../modele/types.ts'
 import { versEcran } from './vue.ts'
 
 const RETRAIT_PASSE = 0.55 // la flèche s'arrête devant le receveur
+const RETRAIT_TIR = 0.25 // la flèche s'arrête au cercle
+const ECART_TIR = 0.1 // demi-écart du double trait
 const FLECHE = 0.5
 const LARGEUR_FLECHE = 0.44
 const BARRE = 0.9
@@ -41,11 +43,22 @@ function onduler(pts: Point[]): Point[] {
   return res
 }
 
-// Tracé à l'écran : coupe = plein + flèche, passe = pointillés + flèche, dribble = ondulé + flèche, écran = plein + barre.
+// Ligne parallèle, décalée de d sur le côté.
+function decaler(pts: Point[], d: number): Point[] {
+  return pts.map((p, i): Point => {
+    const [a, b] = [pts[Math.max(0, i - 1)], pts[Math.min(pts.length - 1, i + 1)]]
+    const n = distance(a, b) || 1
+    return [p[0] - ((b[1] - a[1]) / n) * d, p[1] + ((b[0] - a[0]) / n) * d]
+  })
+}
+
+// Tracé à l'écran : coupe = plein + flèche, passe = pointillés + flèche, dribble = ondulé + flèche, écran = plein + barre,
+// tir = double trait + flèche.
 export function traceAction(a: Action, t: Terrain): { ligne: string; tete?: string; barre?: string; zone: string } {
   let pts = polyligne(a.chemin).map((p) => versEcran(t, p))
   const zone = chemin2d(pts)
   if (a.type === 'passe') pts = couper(pts, Math.max(longueur(pts) * 0.4, longueur(pts) - RETRAIT_PASSE))
+  if (a.type === 'tir') pts = couper(pts, Math.max(longueur(pts) * 0.4, longueur(pts) - RETRAIT_TIR))
   const total = longueur(pts)
   const bout = pts[pts.length - 1]
   const avant = pointA(pts, total > 0.3 ? (total - 0.3) / total : 0)
@@ -61,5 +74,6 @@ export function traceAction(a: Action, t: Terrain): { ligne: string; tete?: stri
   const [nx, ny] = [-dy * (LARGEUR_FLECHE / 2), dx * (LARGEUR_FLECHE / 2)]
   const tete = `M${p2(bout)} L${p2([base[0] + nx, base[1] + ny])} L${p2([base[0] - nx, base[1] - ny])} Z`
   const corps = couper(pts, Math.max(0, total - FLECHE * 0.8))
+  if (a.type === 'tir') return { ligne: `${chemin2d(decaler(corps, ECART_TIR))} ${chemin2d(decaler(corps, -ECART_TIR))}`, tete, zone }
   return { ligne: chemin2d(a.type === 'dribble' ? onduler(corps) : corps), tete, zone }
 }

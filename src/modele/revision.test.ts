@@ -43,6 +43,12 @@ describe('questionsPour', () => {
     const q = questionsPour(systeme(), null)
     expect(q.map((x) => `${x.etape}${x.joueur}${x.type}`)).toEqual(['0A1quoi', '0A1ou', '0A1qui', '0A2quoi', '0A2ou', '1A3quoi', '1A3ou'])
   })
+  it('un tir : seulement « que fait-il ? », ni « où » ni « à qui »', () => {
+    const s = systeme()
+    s.etapes[1].actions = [act('t', 'tir', 'A2', [[3, 4], [2.5, 5], [1.575, 7.5]])]
+    expect(questionsPour(s, 2)[2]).toEqual({ type: 'quoi', etape: 1, joueur: 'A2', reponse: 'tir' })
+    expect(questionsPour(s, 2)).toHaveLength(3)
+  })
 })
 
 describe('campActif et postes', () => {

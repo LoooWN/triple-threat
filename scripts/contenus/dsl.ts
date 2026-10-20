@@ -1,5 +1,5 @@
 // Petit langage pour décrire les contenus tout faits (exercices, systèmes, séances) en quelques lignes.
-import { etapeSuivante, positionsFinales } from '../../src/modele/etapes.ts'
+import { estDeplacement, etapeSuivante, positionsFinales } from '../../src/modele/etapes.ts'
 import type { Action, Bloc, Camp, Etape, Genre, Joueur, Materiel, Point, Seance, Systeme, Terrain, TypeMateriel } from '../../src/modele/types.ts'
 
 export const DEMI: Terrain = { vue: 'demi', longueur: 28, largeur: 15, ligne3pts: 6.75 }
@@ -54,7 +54,7 @@ export class Actions {
 
   private pos(cle: string): Point {
     const id = idDe(cle)
-    const fin = [...this.actions].reverse().find((a) => a.joueur === id && a.type !== 'passe')
+    const fin = [...this.actions].reverse().find((a) => a.joueur === id && estDeplacement(a))
     if (fin) return fin.chemin[fin.chemin.length - 1]
     const j = this.e.joueurs.find((x) => x.id === id)
     if (!j) throw new Error(`${this.prefixe} : joueur ${cle} absent`)
@@ -76,10 +76,10 @@ export class Actions {
     this.actions.push({ id: `${this.prefixe}-a${this.n++}`, type: 'passe', joueur: idDe(de), vers: idDe(vers), couleur: ENCRE, chemin: [] })
     return this
   }
-  // Tir : une flèche en pointillés vers le panier attaqué (ou `PANIER_LOIN` sur tout le terrain).
+  // Tir : une flèche vers le panier attaqué (ou `PANIER_LOIN` sur tout le terrain).
   tir(de: string, via?: Point, cible: Point = R.panier as Point) {
     const c = chemin(this.pos(de), via ? [{ c: via }, cible] : [cible])
-    this.actions.push({ id: `${this.prefixe}-a${this.n++}`, type: 'passe', joueur: idDe(de), couleur: ENCRE, chemin: c })
+    this.actions.push({ id: `${this.prefixe}-a${this.n++}`, type: 'tir', joueur: idDe(de), couleur: ENCRE, chemin: c })
     return this
   }
   texte(p: Point, t: string) { this.textes.push({ id: `${this.prefixe}-t${this.textes.length}`, x: p[0], y: p[1], texte: t }); return this }

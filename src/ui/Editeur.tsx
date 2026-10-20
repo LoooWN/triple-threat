@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type JSX, type PointerEvent as PE } from 'react'
 import { placerDefense } from '../modele/defense.ts'
-import { attacherTrait, changerChemin, changerNumero, deplacerJoueur, etapeSuivante, propager, receveurPasse, retirerJoueur } from '../modele/etapes.ts'
+import { attacherTrait, changerChemin, changerNumero, deplacerJoueur, etapeSuivante, propager, receveurPasse, retirerJoueur, versPanier } from '../modele/etapes.ts'
 import { polyligne } from '../modele/geometrie.ts'
 import { lisserTrace } from '../modele/lissage.ts'
 import { assignerMaillot, maillotsAffiches } from '../modele/documents.ts'
@@ -27,7 +27,7 @@ interface Geste { cible: Cible | null; client: [number, number]; debut: Point; p
 const ENCRE = '#1b2430'
 const ROUGE = '#b8322a'
 const COULEURS = [ENCRE, ROUGE, '#1f5fa8', '#2e7d4f', '#7a3fa0']
-const TYPES: [TypeAction, string][] = [['coupe', 'Coupe'], ['passe', 'Passe'], ['dribble', 'Dribble'], ['ecran', 'Écran']]
+const TYPES: [TypeAction, string][] = [['coupe', 'Coupe'], ['passe', 'Passe'], ['dribble', 'Dribble'], ['ecran', 'Écran'], ['tir', 'Tir']]
 const MATERIEL: [TypeMateriel, string][] = [['plot', 'Plot'], ['echelle', 'Échelle'], ['ballon', 'Ballon au sol']]
 
 function lireCible(el: EventTarget): Cible | null {
@@ -175,8 +175,8 @@ export function Editeur({ initial, equipes, onChange, onFermer, onPresenter }: P
       setApercu(null)
       if (!fin) return
       const a = fin.actions.find((x) => x.id === selection)
-      if (g.cible?.type === 'poignee' && a?.type === 'passe' && +g.cible.id === a.chemin.length - 1) {
-        const r = receveurPasse(fin, a.joueur, a.chemin)
+      if (g.cible?.type === 'poignee' && a && +g.cible.id === a.chemin.length - 1) {
+        const r = a.type === 'passe' ? receveurPasse(fin, a.joueur, a.chemin) : a.type === 'tir' ? { chemin: versPanier(s.terrain, a.chemin) } : null
         if (r) fin = { ...fin, actions: fin.actions.map((x) => (x.id === a.id ? { ...x, ...r } : x)) }
       }
       return modifierEtape(fin)
@@ -236,8 +236,9 @@ export function Editeur({ initial, equipes, onChange, onFermer, onPresenter }: P
     setChoix({ ...att, x, y })
   }
 
-  // Crée (ou transforme) une action d'un type donné ; une passe doit finir près d'un coéquipier.
+  // Crée (ou transforme) une action d'un type donné ; une passe doit finir près d'un coéquipier, un tir finit au panier.
   const avecType = (a: Omit<Action, 'type' | 'vers'>, type: TypeAction): Action | null => {
+    if (type === 'tir') return { ...a, type, chemin: versPanier(s.terrain, a.chemin) }
     if (type !== 'passe') return { ...a, type }
     const r = receveurPasse(etape, a.joueur, a.chemin)
     if (!r) {
@@ -516,7 +517,7 @@ export function Editeur({ initial, equipes, onChange, onFermer, onPresenter }: P
       </aside>
 
       {choix && (
-        <div className="bulle" style={pres(choix.x, choix.y, 420, 110)} role="dialog" aria-label="Type d’action">
+        <div className="bulle" style={pres(choix.x, choix.y, 510, 110)} role="dialog" aria-label="Type d’action">
           {TYPES.map(([t, nom]) => (
             <button key={t} className="type" onClick={() => choisirType(t)}><ApercuType type={t} />{nom}</button>
           ))}

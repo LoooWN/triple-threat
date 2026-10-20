@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { ballonsFinaux, changerChemin, changerNumero, deplacerJoueur, etapeSuivante, positionsFinales, propager, retirerJoueur } from './etapes.ts'
+import { ballonsFinaux, changerChemin, changerNumero, deplacerJoueur, etapeSuivante, positionsFinales, propager, retirerJoueur, versPanier } from './etapes.ts'
 import { nouveauDocument } from './documents.ts'
+import { fin } from './geometrie.ts'
 import type { Action, Etape, Joueur, Point, TypeAction } from './types.ts'
 
 const j = (id: string, x: number, y: number): Joueur =>
@@ -41,6 +42,21 @@ describe('ballonsFinaux', () => {
     const deux = ballonsFinaux(etape(joueurs, [act('passe', 'A1', [[9, 7.5], [7, 5], [5, 2]], 'A2')], ['A1', 'A3']))
     expect([...deux].sort()).toEqual(['A2', 'A3'])
     expect(ballonsFinaux(etape(joueurs, [act('passe', 'A1', [[9, 7.5], [7, 5], [5, 2]], 'A2')]))).toEqual(['A2'])
+  })
+  it('un tir enlève le ballon au tireur, qui reste sur place', () => {
+    const e = etape(joueurs, [act('tir', 'A1', [[9, 7.5], [5, 7.5], [1.575, 7.5]])], ['A1'])
+    expect(ballonsFinaux(e)).toEqual([])
+    expect(positionsFinales(e).get('A1')).toEqual([9, 7.5])
+  })
+})
+
+describe('versPanier', () => {
+  it('finit le tir dans le panier le plus proche (deux paniers en terrain entier)', () => {
+    const demi = { vue: 'demi', longueur: 28, largeur: 15, ligne3pts: 6.75 } as const
+    expect(fin(versPanier(demi, [[9, 3], [6, 5], [3, 6]]))).toEqual([1.575, 7.5])
+    const [x, y] = fin(versPanier({ ...demi, vue: 'entier' }, [[20, 3], [23, 5], [25, 6]]))
+    expect(x).toBeCloseTo(26.425)
+    expect(y).toBe(7.5)
   })
 })
 

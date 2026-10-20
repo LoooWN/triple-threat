@@ -1,7 +1,7 @@
 // Coordonnées en mètres : x = distance à la ligne de fond (panier attaqué en x = 1,575), y = distance à la ligne de touche.
 export type Point = [number, number]
 export type Camp = 'attaque' | 'defense' | 'coach'
-export type TypeAction = 'coupe' | 'passe' | 'dribble' | 'ecran'
+export type TypeAction = 'coupe' | 'passe' | 'dribble' | 'ecran' | 'tir'
 export type Genre = 'systeme' | 'exercice'
 export type TypeMateriel = 'plot' | 'echelle' | 'ballon'
 

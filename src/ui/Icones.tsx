@@ -1,3 +1,5 @@
+import type { TypeAction } from '../modele/types.ts'
+
 // Icônes dessinées à la main (aucune ressource externe).
 const I = ({ d, plein }: { d: string; plein?: boolean }) => (
   <svg viewBox="0 0 24 24" className="icone" aria-hidden="true" fill={plein ? 'currentColor' : 'none'}
@@ -39,12 +41,13 @@ export const Icone = {
 }
 
 // Aperçu du style de trait de chaque type d'action.
-export function ApercuType({ type }: { type: 'coupe' | 'passe' | 'dribble' | 'ecran' }) {
+export function ApercuType({ type }: { type: TypeAction }) {
   const ligne = {
     coupe: 'M4 12H34',
     passe: 'M4 12H34',
     dribble: 'M4 12q2.5-5 5 0t5 0 5 0 5 0 5 0 5 0',
     ecran: 'M4 12H40',
+    tir: 'M4 9H35M4 15H35',
   }[type]
   return (
     <svg viewBox="0 0 48 24" className="apercu-type" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">

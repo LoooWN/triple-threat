@@ -1,7 +1,8 @@
+import { PANIER_X } from './defense.ts'
 import { deplacerDebut, deplacerFin, distance, fin, proche } from './geometrie.ts'
-import { nouvelId, type Action, type Etape, type Point, type Systeme } from './types.ts'
+import { nouvelId, type Action, type Etape, type Point, type Systeme, type Terrain } from './types.ts'
 
-export const estDeplacement = (a: Action) => a.type !== 'passe'
+export const estDeplacement = (a: Action) => a.type !== 'passe' && a.type !== 'tir'
 
 // Où chaque joueur se trouve à la fin de l'étape : au bout de sa dernière coupe, dribble ou écran.
 export function positionsFinales(e: Etape): Map<string, Point> {
@@ -11,11 +12,12 @@ export function positionsFinales(e: Etape): Map<string, Point> {
 }
 
 // Chaque passe enlève le ballon au passeur et en donne un au receveur (même si le passeur n'en avait pas).
+// Un tir enlève le ballon au tireur.
 export function ballonsFinaux(e: Etape): string[] {
   const porteurs = new Set(e.ballons)
-  for (const a of e.actions) if (a.type === 'passe' && a.vers) {
+  for (const a of e.actions) if (a.type === 'tir' || (a.type === 'passe' && a.vers)) {
     porteurs.delete(a.joueur)
-    porteurs.add(a.vers)
+    if (a.vers) porteurs.add(a.vers)
   }
   return [...porteurs]
 }
@@ -150,4 +152,10 @@ export function receveurPasse(e: Etape, passeur: string, chemin: Point[]): { ver
     if (d < 2.5 && (!meilleur || d < meilleur.d)) meilleur = { vers: j.id, p, d }
   }
   return meilleur && { vers: meilleur.vers, chemin: deplacerFin(chemin, meilleur.p) }
+}
+
+// Un tir finit dans le panier le plus proche (le terrain entier en a deux).
+export function versPanier(t: Terrain, chemin: Point[]): Point[] {
+  const x = t.vue === 'entier' && fin(chemin)[0] > t.longueur / 2 ? t.longueur - PANIER_X : PANIER_X
+  return deplacerFin(chemin, [x, t.largeur / 2])
 }

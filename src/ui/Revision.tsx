@@ -9,9 +9,9 @@ import { useLecture } from './useLecture.tsx'
 import { borner, depuisEcran, versEcran } from './vue.ts'
 
 const PHRASES: Record<TypeAction | 'rien', string> = {
-  coupe: 'il coupe', passe: 'il passe', dribble: 'il dribble', ecran: 'il pose un écran', rien: 'il ne bouge pas',
+  coupe: 'il coupe', passe: 'il passe', dribble: 'il dribble', ecran: 'il pose un écran', tir: 'il tire', rien: 'il ne bouge pas',
 }
-const CHOIX: [TypeAction | 'rien', string][] = [['coupe', 'Coupe'], ['passe', 'Passe'], ['dribble', 'Dribble'], ['ecran', 'Écran'], ['rien', 'Ne bouge pas']]
+const CHOIX: [TypeAction | 'rien', string][] = [['coupe', 'Coupe'], ['passe', 'Passe'], ['dribble', 'Dribble'], ['ecran', 'Écran'], ['tir', 'Tir'], ['rien', 'Ne bouge pas']]
 
 const nom = (e: Etape, id: string) => {
   const j = e.joueurs.find((x) => x.id === id)

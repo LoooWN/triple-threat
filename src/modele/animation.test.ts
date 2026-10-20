@@ -62,6 +62,19 @@ describe('etatAnime', () => {
     expect(pres(etatAnime(e, 1).ballons[0], [5, 13])).toBe(true)
   })
 
+  it('le tireur attend le ballon et reste sur place ; le ballon finit dans le panier', () => {
+    const e = etape([
+      act('p1', 'passe', 'A1', [[9, 7.5], [7, 4], [5, 2]], 'A2'),
+      act('t2', 'tir', 'A2', [[5, 2], [3, 4], [1.575, 7.5]]),
+    ])
+    expect(nombreTemps(e)).toBe(2)
+    expect(pres(etatAnime(e, 0.5).ballons[0], [5, 2])).toBe(true)
+    const fin = etatAnime(e, 1)
+    expect(fin.positions.get('A2')).toEqual([5, 2])
+    expect(fin.ballons).toHaveLength(1)
+    expect(pres(fin.ballons[0], [1.575, 7.5])).toBe(true)
+  })
+
   it('suit plusieurs ballons à la fois (exercice)', () => {
     const e = { ...etape([act('p1', 'passe', 'A1', [[9, 7.5], [7, 4], [5, 2]], 'A2')]), ballons: ['A1', 'A3'] }
     const milieu = etatAnime(e, 0.5).ballons

@@ -21,7 +21,7 @@ const parmi = (v: unknown, valeurs: string[]) => valeurs.includes(v as string)
 
 const joueur = (j: unknown) => objet(j) && texte(j.id) && parmi(j.camp, ['attaque', 'defense', 'coach']) && nombre(j.numero) && nombre(j.x) && nombre(j.y)
 const action = (a: unknown) =>
-  objet(a) && texte(a.id) && parmi(a.type, ['coupe', 'passe', 'dribble', 'ecran']) && texte(a.joueur) &&
+  objet(a) && texte(a.id) && parmi(a.type, ['coupe', 'passe', 'dribble', 'ecran', 'tir']) && texte(a.joueur) &&
   (a.vers === undefined || texte(a.vers)) && texte(a.couleur) &&
   liste(a.chemin, point) && (a.chemin as unknown[]).length >= 3 && (a.chemin as unknown[]).length % 2 === 1
 const etiquette = (t: unknown) => objet(t) && texte(t.id) && nombre(t.x) && nombre(t.y) && texte(t.texte)

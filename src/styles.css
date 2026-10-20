@@ -389,7 +389,6 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .avancement { margin: 0; color: var(--craie-2); font-size: 14px; }
 .reponses { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .reponses .bouton { min-height: 56px; font-size: 17px; }
-.reponses .bouton:last-child { grid-column: 1 / -1; }
 .correction { margin: 0; font: 800 22px var(--titre); }
 .correction.juste { color: #7fd69c; }
 .correction.faux { color: var(--danger); }

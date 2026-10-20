@@ -117,7 +117,7 @@ const exercices = [
     .etape('3 dribble vers l’aile droite ; 4 coupe en porte arrière, reçoit et finit malgré l’entraîneur.', (a) => a
       .dribble('3', d(500, 380)).coupe('4', { c: d(640, 220) }, d(440, 120)).coupe('C1', d(480, 190)).passe('3', '4').tir('4'))
     .etape('4 repart sous le panier avec le ballon ; 5 relance aussitôt vers l’aile gauche.', (a) => a
-      .dribble('4', d(440, 25)).passe('5', '6')),
+      .dribble('4', d(440, 25)).passe('5', '6'), { ballons: ['4', '5'] }),
 
   exercice({
     id: 'dp-720', nom: 'Étoile de passes', categorie: 'Passe', duree: 8,
