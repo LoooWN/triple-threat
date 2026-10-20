@@ -25,7 +25,7 @@ export default defineConfig({
           { src: 'icone-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: { globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'] },
+      workbox: { globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,json}'] },
     }),
   ],
   // jsPDF ne charge ces modules que pour convertir du HTML, ce qu'on ne fait pas : inutile de les embarquer.

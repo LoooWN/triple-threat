@@ -10,6 +10,7 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "icones": "node scripts/icones.mjs",
+    "contenus": "node scripts/contenus/generer.ts",
     "deployer": "npm run build && node scripts/deployer.mjs"
   },
   "dependencies": {

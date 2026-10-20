@@ -125,3 +125,9 @@ Les joueurs regardent et révisent **sur leur téléphone**, sans le coach. Livr
 - Sources demandées par Logan : FIBA « Commencer à entraîner – Plans d'entraînement » (10 plans), bibliothèque publique Drills&Plays (les plus populaires par catégorie), fiches SportEasy basket ; plus les 24 systèmes MIT de 3d-hoops-playbook.
 - Chaque exercice ou système est redessiné dans le format Triple Threat et décrit avec nos mots, avec la mention de sa source dans la fiche. Les plans FIBA deviennent des séances.
 - Ajout par un bouton « Ajouter des contenus tout faits » (choix des paquets) ; réimporter ne crée pas de doublons.
+- Réalisé (2026-10-20), bouton « Contenus tout faits » de la bibliothèque, 4 paquets dans `public/contenus/` (mis en cache, dispo hors ligne) :
+  - FIBA : 30 exercices + 10 séances d'une heure (pauses notées dans les blocs).
+  - Systèmes d'attaque classiques : 24 systèmes MIT, géométrie convertie pieds → mètres FIBA, attaque seulement (`scripts/contenus/mit-geo.ts` garde la licence MIT complète).
+  - Drills&Plays : les 2 plus consultés de chaque catégorie (8 d'exercices, 7 de systèmes), redessinés d'après les captures du site.
+  - SportEasy : les 10 fiches basket (le schéma n'est publié que pour « Se démarquer sur l'extérieur » ; les autres sont dessinés d'après le texte). Les 2 plans de préparation physique estivale, sans terrain, sont laissés de côté.
+- Générés par `npm run contenus` (`scripts/contenus/*.ts`, petit DSL `dsl.ts`) ; un test vérifie que chaque paquet s'importe, sans doublon au 2e import, joueurs et flèches sur le terrain.

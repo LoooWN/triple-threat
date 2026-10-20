@@ -581,3 +581,19 @@ test('statistiques de match : noter en direct, score, quarts-temps, feuille et m
   await expect(page.getByText('Moyennes par match (1 matchs notés)')).toBeVisible()
   await expect(page.locator('.stats-saison').getByRole('row', { name: /00 Léa/ }).getByRole('cell').nth(1)).toHaveText('5')
 })
+
+test('contenus tout faits : ajoutés en mode avion, séances comprises, sans doublon', async ({ page }) => {
+  await passerEnModeAvion(page)
+  const ajouterFiba = async () => {
+    await page.getByRole('button', { name: 'Contenus tout faits' }).click()
+    await page.getByRole('button', { name: 'Ajouter FIBA – Commencer à entraîner' }).click()
+  }
+  await ajouterFiba()
+  await expect(page.getByText('Importé : 30 exercices, 10 séances.')).toBeVisible()
+  await page.getByRole('tab', { name: 'Exercices' }).click()
+  await expect(page.getByRole('button', { name: 'Ouvrir 20 passes', exact: true })).toBeVisible()
+  await page.getByRole('tab', { name: 'Séances' }).click()
+  await expect(page.getByText('Plan FIBA n°10', { exact: true })).toBeVisible()
+  await ajouterFiba()
+  await expect(page.getByText('Tout est déjà sur cet iPad.')).toBeVisible()
+})

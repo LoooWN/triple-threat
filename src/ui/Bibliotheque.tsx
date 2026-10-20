@@ -4,6 +4,7 @@ import { categoriesDe, nouveauDocument, rechercher, variante } from '../modele/d
 import { exporter, importer } from '../modele/fichier.ts'
 import type { Equipe, Genre, Seance, Systeme } from '../modele/types.ts'
 import { dernierTerrain, partagerFichier, retenirTerrain } from '../stockage.ts'
+import { ContenusToutFaits } from './Contenus.tsx'
 import { Effectif } from './Effectif.tsx'
 import { imageDocument, pdfDocuments } from './export.tsx'
 import { Icone } from './Icones.tsx'
@@ -27,13 +28,13 @@ interface Props { donnees: Donnees; revisables: Systeme[]; onglet: Onglet; setOn
 export function Bibliotheque({ donnees, revisables, onglet, setOnglet, ouvrir }: Props) {
   const [message, montrer] = useMessage()
   const fichier = useRef<HTMLInputElement>(null)
+  const [contenus, setContenus] = useState(false)
   const { systemes, seances, equipes } = donnees
   const tout = { systemes: systemes.elements ?? [], seances: seances.elements ?? [], equipes: equipes.elements ?? [], matchs: donnees.matchs.elements ?? [] }
 
-  const importerFichier = async (f: File | undefined) => {
-    if (!f) return
+  const importerTexte = (texte: string) => {
     try {
-      const r = importer(await f.text(), tout)
+      const r = importer(texte, tout)
       r.systemes.forEach(systemes.garder)
       r.seances.forEach(seances.garder)
       r.equipes.forEach(equipes.garder)
@@ -49,9 +50,12 @@ export function Bibliotheque({ donnees, revisables, onglet, setOnglet, ouvrir }:
       montrer(morceaux.length ? `Importé : ${morceaux.join(', ')}.${deja}` : r.dejaPresents ? 'Tout est déjà sur cet iPad.' : 'Ce fichier est vide.')
     } catch (e) {
       alert((e as Error).message)
-    } finally {
-      if (fichier.current) fichier.current.value = ''
     }
+  }
+  const importerFichier = async (f: File | undefined) => {
+    if (!f) return
+    importerTexte(await f.text())
+    if (fichier.current) fichier.current.value = ''
   }
 
   const toutSauvegarder = () => {
@@ -76,6 +80,7 @@ export function Bibliotheque({ donnees, revisables, onglet, setOnglet, ouvrir }:
       <header className="entete">
         <h1><img src={`${import.meta.env.BASE_URL}icone.svg`} alt="" />Triple Threat</h1>
         <div className="actions-entete">
+          <button className="bouton" onClick={() => setContenus(true)}><Icone.plus />Contenus tout faits</button>
           <button className="bouton" onClick={() => fichier.current?.click()}><Icone.importer />Importer</button>
           <button className="bouton" onClick={toutSauvegarder}><Icone.partager />Tout sauvegarder</button>
           <input ref={fichier} type="file" accept="application/json,.json" hidden onChange={(e) => importerFichier(e.target.files?.[0])} />
@@ -101,13 +106,14 @@ export function Bibliotheque({ donnees, revisables, onglet, setOnglet, ouvrir }:
         fais « Tout sauvegarder » de temps en temps et range le fichier dans Fichiers ou iCloud.
       </p>
       <Message texte={message} />
+      {contenus && <ContenusToutFaits ajouter={importerTexte} onFermer={() => setContenus(false)} />}
     </main>
   )
 }
 
 const MOTS = {
-  systeme: { un: 'système', ce: 'ce système', nouveau: 'Nouveau système', aucun: 'Aucun système pour l’instant. Crée le premier, ou importe une sauvegarde.' },
-  exercice: { un: 'exercice', ce: 'cet exercice', nouveau: 'Nouvel exercice', aucun: 'Aucun exercice pour l’instant. Crée le premier, ou importe une sauvegarde.' },
+  systeme: { un: 'système', ce: 'ce système', nouveau: 'Nouveau système', aucun: 'Aucun système pour l’instant. Crée le premier, importe une sauvegarde ou ajoute des « Contenus tout faits ».' },
+  exercice: { un: 'exercice', ce: 'cet exercice', nouveau: 'Nouvel exercice', aucun: 'Aucun exercice pour l’instant. Crée le premier, importe une sauvegarde ou ajoute des « Contenus tout faits ».' },
 }
 
 interface ListeProps {

@@ -211,6 +211,11 @@ button { font: inherit; color: inherit; touch-action: manipulation; cursor: poin
 .fenetre { max-height: calc(100dvh - 32px); overflow: auto; padding: 22px; border-radius: 18px; background: var(--nuit-2); box-shadow: 0 20px 60px rgb(0 0 0 / .45); }
 .fenetre h2 { margin: 0 0 6px; font: 800 24px var(--titre); }
 .fenetre.petite { display: flex; flex-direction: column; gap: 8px; width: min(380px, 100%); }
+.fenetre.contenus { width: min(680px, 100%); }
+.contenus ul { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; padding: 0; list-style: none; }
+.contenus li { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; background: var(--nuit); }
+.contenus li > div { display: flex; flex: 1; flex-direction: column; gap: 4px; }
+.contenus small { color: var(--craie-2); }
 .reglage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; width: min(920px, 100%); }
 .champs { display: flex; flex-direction: column; gap: 14px; }
 .champ { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
