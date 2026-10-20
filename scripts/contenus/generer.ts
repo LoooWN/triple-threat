@@ -1,12 +1,13 @@
 // Écrit les paquets de contenus tout faits dans public/contenus/ (npm run contenus).
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { coachingu } from './coachingu.ts'
 import { dp } from './dp.ts'
 import type { Paquet } from './dsl.ts'
 import { fiba } from './fiba.ts'
 import { mit } from './mit.ts'
 import { sporteasy } from './sporteasy.ts'
 
-const paquets: Paquet[] = [fiba, mit, dp, sporteasy]
+const paquets: Paquet[] = [fiba, mit, dp, sporteasy, coachingu]
 const dossier = new URL('../../public/contenus/', import.meta.url)
 mkdirSync(dossier, { recursive: true })
 

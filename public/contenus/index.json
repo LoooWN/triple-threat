@@ -34,5 +34,14 @@
     "exercices": 10,
     "systemes": 0,
     "seances": 0
+  },
+  {
+    "id": "coaching-u",
+    "titre": "Coaching U – 3 systèmes",
+    "description": "3 systèmes : « 3 Back » et « Thumb Up 43 » (attaque placée), « 5 Flash » (remise en jeu latérale).",
+    "credits": "Coaching U, schémas FastModel Sports. Schémas redessinés et textes réécrits pour Triple Threat ; usage personnel.",
+    "exercices": 0,
+    "systemes": 3,
+    "seances": 0
   }
 ]
