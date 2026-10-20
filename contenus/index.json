@@ -1,0 +1,38 @@
+[
+  {
+    "id": "fiba",
+    "titre": "FIBA – Commencer à entraîner",
+    "description": "30 exercices et les 10 plans d’entraînement d’une heure du livret FIBA pour débuter (jeunes et débutants).",
+    "credits": "FIBA-WABC, « Commencer à entraîner – Plans d’entraînement » (© 2020 FIBA-WABC). Schémas redessinés et textes reformulés pour Triple Threat ; usage personnel.",
+    "exercices": 30,
+    "systemes": 0,
+    "seances": 10
+  },
+  {
+    "id": "mit",
+    "titre": "Systèmes d’attaque classiques",
+    "description": "24 systèmes d’attaque : pick and roll, horns, floppy, flex, triangle, transition…",
+    "credits": "« 3D Hoops Playbook » de HPotty36 (https://github.com/HPotty36/3d-hoops-playbook), licence MIT ; traduit et adapté. Copyright (c) 2026 HPotty36.",
+    "exercices": 0,
+    "systemes": 24,
+    "seances": 0
+  },
+  {
+    "id": "drills-and-plays",
+    "titre": "Drills&Plays – les plus populaires",
+    "description": "16 exercices et 14 systèmes parmi les plus consultés de chaque catégorie de Drills&Plays (tir, passe, défense, remises en jeu, pressing, zone, fin de match…).",
+    "credits": "Drills&Plays (drillsandplays.com), contenus publics de leurs auteurs (cités sur chaque fiche). Schémas redessinés et textes réécrits pour Triple Threat ; usage personnel.",
+    "exercices": 16,
+    "systemes": 14,
+    "seances": 0
+  },
+  {
+    "id": "sporteasy",
+    "titre": "SportEasy – fiches basket",
+    "description": "Les 10 fiches d’entraînement basket de SportEasy : démarquage, écrans, tir sous pression, contre-attaque, rebond offensif, vitesse.",
+    "credits": "SportEasy (sporteasy.net), fiches d’entraînement gratuites. Schémas redessinés et textes réécrits pour Triple Threat ; usage personnel.",
+    "exercices": 10,
+    "systemes": 0,
+    "seances": 0
+  }
+]
